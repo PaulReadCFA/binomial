@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binomial Option Pricing Calculator | CFA Institute</title>
+  <meta name="description" content="Interactive one-period binomial option pricing calculator for calls and puts">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="cfa-base.css">
+  <link rel="stylesheet" href="binomial-specific.css">
+  
+  <!-- Chart.js for visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Skip Links for Accessibility -->
+    <nav role="navigation" aria-label="Skip links">
+      <a href="#calculator" class="skip-link">Skip to calculator</a>
+      <a href="#visualizer" class="skip-link">Skip to binomial trees</a>
+    </nav>
+    
+    <main class="content">
+      <!-- Card 1: Equation -->
+      <section id="equation-card" class="card">
+        <h4 class="card-title">Binomial Option Pricing Equations</h4>
+        <p class="equation-intro">
+          This model values options by calculating expected payoffs under risk-neutral probability.
+        </p>
+        
+        <!-- Dynamic equation with actual values -->
+        <div class="equation-container" role="region" aria-label="Binomial pricing equations" aria-live="polite" id="dynamic-equation-container">
+          <div id="dynamic-mathml-equation">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Cards 2 & 3: Results and Visualizer -->
+      <div class="grid-container">
+        <!-- Card 2: Results & Analysis -->
+        <div class="grid-item-left">
+          <section class="card" id="results-card">
+            <h4 class="card-title">Option Prices</h4>
+            <div class="card-content">
+              <div id="results-content">
+                <!-- Populated by JavaScript -->
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Card 3: Visualizer -->
+        <div class="grid-item-right">
+          <section class="card" id="visualizer" tabindex="-1">
+            <h4 class="card-title">Binomial Trees</h4>
+            <div class="card-content">
+              <!-- Legend -->
+              <div class="legend" id="chart-legend" role="list" aria-label="Chart legend">
+                <span class="legend-item" role="listitem">
+                  <span class="legend-color" style="background-color: #059669;"></span>
+                  Up path
+                </span>
+                <span class="legend-item" role="listitem">
+                  <span class="legend-color" style="background-color: #dc2626;"></span>
+                  Down path
+                </span>
+              </div>
+
+              <!-- Hidden chart descriptions -->
+              <div class="sr-only" id="binomial-chart-desc">
+                <h4 id="binomial-chart-title">Binomial option pricing trees</h4>
+                <p>
+                  Three line charts showing binomial trees for asset price, call option value, and put option value.
+                  Each tree shows the value at t=0 branching into up and down states at t=1.
+                </p>
+              </div>
+
+              <!-- Chart containers -->
+              <div id="charts-wrapper">
+                <div class="binomial-chart-section">
+                  <h5 class="binomial-chart-title">Asset Price Evolution</h5>
+                  <div class="binomial-chart-container" 
+                       role="region" 
+                       aria-labelledby="binomial-chart-title"
+                       tabindex="-1">
+                    <canvas id="asset-chart"></canvas>
+                  </div>
+                </div>
+
+                <div class="binomial-chart-section">
+                  <h5 class="binomial-chart-title">Call Option Valuation</h5>
+                  <div class="binomial-chart-container" 
+                       role="region"
+                       tabindex="-1">
+                    <canvas id="call-chart"></canvas>
+                  </div>
+                </div>
+
+                <div class="binomial-chart-section">
+                  <h5 class="binomial-chart-title">Put Option Valuation</h5>
+                  <div class="binomial-chart-container" 
+                       role="region"
+                       tabindex="-1">
+                    <canvas id="put-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Educational note -->
+              <div class="educational-note">
+                <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and risk-neutral probability.
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Card 4: Calculator -->
+      <section class="card" id="calculator" tabindex="-1">
+        <h4 class="card-title">Binomial Option Pricing Calculator</h4>
+        <div class="card-content">
+          <!-- Input controls -->
+          <div class="input-section">
+            <p class="sr-only" id="inputHelp">
+              Enter asset prices, strike price, and risk-free rate to calculate option prices.
+            </p>
+
+            <div class="input-group-inline">
+              <div class="input-inline">
+                <label for="s0" class="input-label-inline">
+                  Current price <span style="color: #059669;">(S₀)</span>:
+                </label>
+                <div class="input-with-suffix-inline">
+                  <span class="input-prefix">$</span>
+                  <input 
+                    type="number" 
+                    id="s0" 
+                    class="input-field-inline"
+                    min="0" step="0.01" value="40">
+                  <span class="input-suffix-inline">&nbsp;</span>
+                </div>
+              </div>
+
+              <div class="input-inline">
+                <label for="su" class="input-label-inline">
+                  Up-state <span style="color: #059669;">(Su)</span>:
+                </label>
+                <div class="input-with-suffix-inline">
+                  <span class="input-prefix">$</span>
+                  <input 
+                    type="number" 
+                    id="su" 
+                    class="input-field-inline"
+                    min="0" step="0.01" value="56">
+                  <span class="input-suffix-inline">&nbsp;</span>
+                </div>
+              </div>
+
+              <div class="input-inline">
+                <label for="sd" class="input-label-inline">
+                  Down-state <span style="color: #dc2626;">(Sd)</span>:
+                </label>
+                <div class="input-with-suffix-inline">
+                  <span class="input-prefix">$</span>
+                  <input 
+                    type="number" 
+                    id="sd" 
+                    class="input-field-inline"
+                    min="0" step="0.01" value="32">
+                  <span class="input-suffix-inline">&nbsp;</span>
+                </div>
+              </div>
+
+              <div class="input-inline">
+                <label for="strike" class="input-label-inline">
+                  Strike price (K):
+                </label>
+                <div class="input-with-suffix-inline">
+                  <span class="input-prefix">$</span>
+                  <input 
+                    type="number" 
+                    id="strike" 
+                    class="input-field-inline"
+                    min="0" step="0.01" value="50">
+                  <span class="input-suffix-inline">&nbsp;</span>
+                </div>
+              </div>
+
+              <div class="input-inline">
+                <label for="risk-free-rate" class="input-label-inline">
+                  Risk-free rate (r):
+                </label>
+                <div class="input-with-suffix-inline">
+                  <input 
+                    type="number" 
+                    id="risk-free-rate" 
+                    class="input-field-inline"
+                    min="-99" max="100" step="0.01" value="5">
+                  <span class="input-suffix-inline">%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Validation summary -->
+            <div id="validation-summary" class="validation-summary" role="alert" style="display: none;">
+              <div class="validation-title">Please correct the following:</div>
+              <ul id="validation-list"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- JavaScript Modules -->
+  <script type="module" src="binomial-calculator.js"></script>
+</body>
+</html>

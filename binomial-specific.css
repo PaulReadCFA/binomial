@@ -1,0 +1,194 @@
+/* Binomial Option Pricing Calculator Specific Styles */
+:root {
+  --color-call-option: #3c6ae5;            /* Blue - call option */
+  --color-put-option: #7a46ff;             /* Purple - put option */
+  --color-up-path: #059669;                /* Green - up movement */
+  --color-down-path: #dc2626;              /* Red - down movement */
+}
+
+.result-box.call-option {
+  background-color: var(--color-bg-blue);
+  border-color: var(--color-blue-interactive);
+}
+
+.result-box.put-option {
+  background-color: var(--color-bg-purple);
+  border-color: var(--color-purple-bold);
+}
+
+.result-box.risk-neutral {
+  background-color: var(--color-gray-50);
+  border-color: var(--color-gray-300);
+}
+
+.result-title.call-option {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-blue-interactive);
+}
+
+.result-title.put-option {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-purple-bold);
+}
+
+.result-value {
+  color: var(--color-gray-800);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+.binomial-chart-section {
+  margin-bottom: 2rem;
+}
+
+.binomial-chart-section:last-of-type {
+  margin-bottom: 1rem;
+}
+
+.binomial-chart-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-gray-800);
+  margin-bottom: 0.75rem;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.binomial-chart-container {
+  height: 20rem;
+  position: relative;
+  border-radius: 0.5rem;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  padding: 1rem;
+}
+
+.binomial-chart-container:focus {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+.educational-note {
+  padding: 0.75rem;
+  background-color: var(--color-gray-50);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+  margin-top: 1rem;
+}
+
+.input-group-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem 1rem;
+}
+
+.input-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.input-label-inline {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.input-with-suffix-inline {
+  display: flex;
+  align-items: center;
+  width: 7rem;
+  position: relative;
+}
+
+.input-field-inline {
+  flex: 1;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.input-prefix {
+  font-weight: 500;
+  color: var(--color-gray-500);
+  white-space: nowrap;
+  font-size: 0.9rem;
+  padding-right: 0.3rem;
+}
+
+.input-suffix-inline {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-500);
+  pointer-events: none;
+  width: 1.2rem;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .input-group-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .input-inline {
+    width: 100%;
+  }
+  .input-with-suffix-inline {
+    width: 100%;
+    max-width: 12rem;
+  }
+  .input-label-inline {
+    min-width: auto;
+  }
+  .binomial-chart-container {
+    height: 16rem;
+  }
+}
+
+.equation-container {
+  padding: 1rem;
+  margin: 0.75rem 0;
+  background: white;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+math {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-gray-800);
+}
+
+#dynamic-equation-container math {
+  font-size: 1rem;
+  color: var(--color-gray-700);
+}
+
+@media (max-width: 768px) {
+  .equation-container math {
+    font-size: 0.95em;
+  }
+}
+
+@media (max-width: 640px) {
+  .equation-container math {
+    font-size: 0.85em;
+  }
+}
