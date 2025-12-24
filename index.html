@@ -37,87 +37,7 @@
         </div>
       </section>
 
-      <!-- Cards 2 & 3: Results and Visualizer -->
-      <div class="grid-container">
-        <!-- Card 2: Results & Analysis -->
-        <div class="grid-item-left">
-          <section class="card" id="results-card">
-            <h4 class="card-title">Option Prices</h4>
-            <div class="card-content">
-              <div id="results-content">
-                <!-- Populated by JavaScript -->
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Card 3: Visualizer -->
-        <div class="grid-item-right">
-          <section class="card" id="visualizer" tabindex="-1">
-            <h4 class="card-title">Binomial Trees</h4>
-            <div class="card-content">
-              <!-- Legend -->
-              <div class="legend" id="chart-legend" role="list" aria-label="Chart legend">
-                <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #059669;"></span>
-                  Up path
-                </span>
-                <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #dc2626;"></span>
-                  Down path
-                </span>
-              </div>
-
-              <!-- Hidden chart descriptions -->
-              <div class="sr-only" id="binomial-chart-desc">
-                <h4 id="binomial-chart-title">Binomial option pricing trees</h4>
-                <p>
-                  Three line charts showing binomial trees for asset price, call option value, and put option value.
-                  Each tree shows the value at t=0 branching into up and down states at t=1.
-                </p>
-              </div>
-
-              <!-- Chart containers -->
-              <div id="charts-wrapper">
-                <div class="binomial-chart-section">
-                  <h5 class="binomial-chart-title">Asset Price Evolution</h5>
-                  <div class="binomial-chart-container" 
-                       role="region" 
-                       aria-labelledby="binomial-chart-title"
-                       tabindex="-1">
-                    <canvas id="asset-chart"></canvas>
-                  </div>
-                </div>
-
-                <div class="binomial-chart-section">
-                  <h5 class="binomial-chart-title">Call Option Valuation</h5>
-                  <div class="binomial-chart-container" 
-                       role="region"
-                       tabindex="-1">
-                    <canvas id="call-chart"></canvas>
-                  </div>
-                </div>
-
-                <div class="binomial-chart-section">
-                  <h5 class="binomial-chart-title">Put Option Valuation</h5>
-                  <div class="binomial-chart-container" 
-                       role="region"
-                       tabindex="-1">
-                    <canvas id="put-chart"></canvas>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Educational note -->
-              <div class="educational-note">
-                <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and risk-neutral probability.
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
-      <!-- Card 4: Calculator -->
+      <!-- Card 2: Calculator -->
       <section class="card" id="calculator" tabindex="-1">
         <h4 class="card-title">Binomial Option Pricing Calculator</h4>
         <div class="card-content">
@@ -133,43 +53,40 @@
                   Current price <span style="color: #059669;">(S₀)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">$</span>
+                  <span class="input-prefix">USD</span>
                   <input 
                     type="number" 
                     id="s0" 
                     class="input-field-inline"
                     min="0" step="0.01" value="40">
-                  <span class="input-suffix-inline">&nbsp;</span>
                 </div>
               </div>
 
               <div class="input-inline">
                 <label for="su" class="input-label-inline">
-                  Up-state <span style="color: #059669;">(Su)</span>:
+                  Up-state <span style="color: #059669;">(Sᵤ)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">$</span>
+                  <span class="input-prefix">USD</span>
                   <input 
                     type="number" 
                     id="su" 
                     class="input-field-inline"
                     min="0" step="0.01" value="56">
-                  <span class="input-suffix-inline">&nbsp;</span>
                 </div>
               </div>
 
               <div class="input-inline">
                 <label for="sd" class="input-label-inline">
-                  Down-state <span style="color: #dc2626;">(Sd)</span>:
+                  Down-state <span style="color: #dc2626;">(Sᵨ)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">$</span>
+                  <span class="input-prefix">USD</span>
                   <input 
                     type="number" 
                     id="sd" 
                     class="input-field-inline"
                     min="0" step="0.01" value="32">
-                  <span class="input-suffix-inline">&nbsp;</span>
                 </div>
               </div>
 
@@ -178,13 +95,12 @@
                   Strike price (K):
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">$</span>
+                  <span class="input-prefix">USD</span>
                   <input 
                     type="number" 
                     id="strike" 
                     class="input-field-inline"
                     min="0" step="0.01" value="50">
-                  <span class="input-suffix-inline">&nbsp;</span>
                 </div>
               </div>
 
@@ -208,6 +124,106 @@
               <div class="validation-title">Please correct the following:</div>
               <ul id="validation-list"></ul>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 3: Visualizer -->
+      <section class="card" id="visualizer" tabindex="-1">
+        <div class="card-header-with-controls">
+          <h4 class="card-title">Binomial Trees</h4>
+          <div class="button-group">
+            <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true">Chart</button>
+            <button id="view-table-btn" class="toggle-btn" aria-pressed="false">Table</button>
+          </div>
+        </div>
+        <div class="card-content">
+          <!-- Chart view -->
+          <div id="chart-view">
+            <!-- Legend -->
+            <div class="legend" id="chart-legend" role="list" aria-label="Chart legend">
+              <span class="legend-item" role="listitem">
+                <span class="legend-color" style="background-color: #059669;"></span>
+                Up path
+              </span>
+              <span class="legend-item" role="listitem">
+                <span class="legend-color" style="background-color: #dc2626;"></span>
+                Down path
+              </span>
+            </div>
+
+            <!-- Hidden chart descriptions -->
+            <div class="sr-only" id="binomial-chart-desc">
+              <h4 id="binomial-chart-title">Binomial option pricing trees</h4>
+              <p>
+                Three line charts showing binomial trees for asset price, call option value, and put option value.
+                Each tree shows the value at t=0 branching into up and down states at t=1.
+              </p>
+            </div>
+
+            <!-- Chart containers -->
+            <div id="charts-wrapper">
+              <div class="binomial-chart-section">
+                <h5 class="binomial-chart-title">Asset Price Evolution</h5>
+                <div class="binomial-chart-container" 
+                     role="region" 
+                     aria-labelledby="binomial-chart-title"
+                     tabindex="-1">
+                  <canvas id="asset-chart"></canvas>
+                </div>
+              </div>
+
+              <div class="binomial-chart-section">
+                <h5 class="binomial-chart-title">Call Option Valuation</h5>
+                <div class="binomial-chart-container" 
+                     role="region"
+                     tabindex="-1">
+                  <canvas id="call-chart"></canvas>
+                </div>
+              </div>
+
+              <div class="binomial-chart-section">
+                <h5 class="binomial-chart-title">Put Option Valuation</h5>
+                <div class="binomial-chart-container" 
+                     role="region"
+                     tabindex="-1">
+                  <canvas id="put-chart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Educational note -->
+            <div class="educational-note">
+              <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and risk-neutral probability.
+            </div>
+          </div>
+
+          <!-- Table view (hidden by default) -->
+          <div id="table-view" style="display: none;">
+            <div class="table-wrapper">
+              <table class="data-table" id="binomial-table">
+                <caption>Binomial Option Pricing Values</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Metric</th>
+                    <th scope="col">Value</th>
+                  </tr>
+                </thead>
+                <tbody id="table-body">
+                  <!-- Populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Card 4: Results & Analysis -->
+      <section class="card" id="results-card">
+        <h4 class="card-title">Option Prices</h4>
+        <div class="card-content">
+          <div id="results-content">
+            <!-- Populated by JavaScript -->
           </div>
         </div>
       </section>

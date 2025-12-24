@@ -51,9 +51,9 @@ export function formatCurrency(value, signed = false) {
   });
   
   if (value < 0) {
-    return signed ? `-$${formatted}` : `($${formatted})`;
+    return signed ? `-USD ${formatted}` : `(USD ${formatted})`;
   }
-  return `$${formatted}`;
+  return `USD ${formatted}`;
 }
 
 /**

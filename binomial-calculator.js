@@ -4,14 +4,62 @@ import { validateField, validateAll, updateFieldError, updateValidationSummary, 
 import { $, listen, debounce, formatCurrency, formatPercentage } from './binomial-modules/utils.js';
 
 let assetChart, callChart, putChart;
+let currentView = 'chart'; // 'chart' or 'table'
 
 function init() {
   console.log('Binomial Option Pricing Calculator initializing...');
   setupInputListeners();
+  setupViewToggle();
   subscribe(handleStateChange);
   updateCalculations();
   runSelfTests();
   console.log('Binomial Calculator ready');
+}
+
+function setupViewToggle() {
+  const chartBtn = $('#view-chart-btn');
+  const tableBtn = $('#view-table-btn');
+  
+  if (chartBtn && tableBtn) {
+    listen(chartBtn, 'click', () => switchView('chart'));
+    listen(tableBtn, 'click', () => switchView('table'));
+  }
+}
+
+function switchView(view) {
+  currentView = view;
+  const chartView = $('#chart-view');
+  const tableView = $('#table-view');
+  const chartBtn = $('#view-chart-btn');
+  const tableBtn = $('#view-table-btn');
+  
+  if (view === 'chart') {
+    if (chartView) chartView.style.display = 'block';
+    if (tableView) tableView.style.display = 'none';
+    if (chartBtn) {
+      chartBtn.classList.add('active');
+      chartBtn.setAttribute('aria-pressed', 'true');
+    }
+    if (tableBtn) {
+      tableBtn.classList.remove('active');
+      tableBtn.setAttribute('aria-pressed', 'false');
+    }
+  } else {
+    if (chartView) chartView.style.display = 'none';
+    if (tableView) tableView.style.display = 'block';
+    if (chartBtn) {
+      chartBtn.classList.remove('active');
+      chartBtn.setAttribute('aria-pressed', 'false');
+    }
+    if (tableBtn) {
+      tableBtn.classList.add('active');
+      tableBtn.setAttribute('aria-pressed', 'true');
+    }
+    // Update table when switching to it
+    if (state.optionCalculations) {
+      renderTable(state.optionCalculations, state);
+    }
+  }
 }
 
 function setupInputListeners() {
@@ -65,6 +113,9 @@ function handleStateChange(newState) {
   renderResults(optionCalculations, newState);
   renderDynamicEquation(optionCalculations, newState);
   renderCharts(optionCalculations, newState);
+  if (currentView === 'table') {
+    renderTable(optionCalculations, newState);
+  }
 }
 
 function renderResults(calc, params) {
@@ -108,6 +159,11 @@ function renderDynamicEquation(calc, params) {
   const container = $('#dynamic-mathml-equation');
   if (!container) return;
   
+  const r = params.riskFreeRate / 100;
+  const pVal = calc.p.toFixed(4);
+  const oneMinusP = (1 - calc.p).toFixed(4);
+  const onePlusR = (1 + r).toFixed(4);
+  
   const mathML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
       <div>
@@ -118,12 +174,14 @@ function renderDynamicEquation(calc, params) {
             <mo>=</mo>
             <mfrac>
               <mrow>
-                <mi>p</mi><msub><mi>C</mi><mi>u</mi></msub>
+                <mn>${pVal}</mn><mo>×</mo><mn>${calc.Cu.toFixed(2)}</mn>
                 <mo>+</mo>
-                <mo>(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo>)</mo><msub><mi>C</mi><mi>d</mi></msub>
+                <mn>${oneMinusP}</mn><mo>×</mo><mn>${calc.Cd.toFixed(2)}</mn>
               </mrow>
-              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
+              <mrow><mn>${onePlusR}</mn></mrow>
             </mfrac>
+            <mo>=</mo>
+            <mn mathcolor="#3c6ae5">${calc.C0.toFixed(2)}</mn>
           </mrow>
         </math>
       </div>
@@ -136,12 +194,14 @@ function renderDynamicEquation(calc, params) {
             <mo>=</mo>
             <mfrac>
               <mrow>
-                <mi>p</mi><msub><mi>P</mi><mi>u</mi></msub>
+                <mn>${pVal}</mn><mo>×</mo><mn>${calc.Pu.toFixed(2)}</mn>
                 <mo>+</mo>
-                <mo>(</mo><mn>1</mn><mo>−</mo><mi>p</mi><mo>)</mo><msub><mi>P</mi><mi>d</mi></msub>
+                <mn>${oneMinusP}</mn><mo>×</mo><mn>${calc.Pd.toFixed(2)}</mn>
               </mrow>
-              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
+              <mrow><mn>${onePlusR}</mn></mrow>
             </mfrac>
+            <mo>=</mo>
+            <mn mathcolor="#7a46ff">${calc.P0.toFixed(2)}</mn>
           </mrow>
         </math>
       </div>
@@ -155,16 +215,18 @@ function renderDynamicEquation(calc, params) {
           <mo>=</mo>
           <mfrac>
             <mrow>
-              <mo>(</mo><mn>1</mn><mo>+</mo><mi>r</mi><mo>)</mo><msub><mi mathcolor="#059669">S</mi><mn>0</mn></msub>
+              <mn>${onePlusR}</mn><mo>×</mo><mn mathcolor="#059669">${params.s0.toFixed(2)}</mn>
               <mo>−</mo>
-              <msub><mi mathcolor="#dc2626">S</mi><mi>d</mi></msub>
+              <mn mathcolor="#dc2626">${params.sd.toFixed(2)}</mn>
             </mrow>
             <mrow>
-              <msub><mi mathcolor="#059669">S</mi><mi>u</mi></msub>
+              <mn mathcolor="#059669">${params.su.toFixed(2)}</mn>
               <mo>−</mo>
-              <msub><mi mathcolor="#dc2626">S</mi><mi>d</mi></msub>
+              <mn mathcolor="#dc2626">${params.sd.toFixed(2)}</mn>
             </mrow>
           </mfrac>
+          <mo>=</mo>
+          <mn>${pVal}</mn>
           <mo>=</mo>
           <mtext>${formatPercentage(calc.p * 100)}</mtext>
         </mrow>
@@ -173,6 +235,62 @@ function renderDynamicEquation(calc, params) {
   `;
   
   container.innerHTML = mathML;
+}
+
+function renderTable(calc, params) {
+  const tbody = $('#table-body');
+  if (!tbody) return;
+  
+  tbody.innerHTML = `
+    <tr>
+      <td><strong>Asset Price (S₀)</strong></td>
+      <td>${formatCurrency(params.s0)}</td>
+    </tr>
+    <tr>
+      <td><strong>Up-state (Sᵤ)</strong></td>
+      <td>${formatCurrency(params.su)}</td>
+    </tr>
+    <tr>
+      <td><strong>Down-state (Sᵨ)</strong></td>
+      <td>${formatCurrency(params.sd)}</td>
+    </tr>
+    <tr>
+      <td><strong>Strike Price (K)</strong></td>
+      <td>${formatCurrency(params.strike)}</td>
+    </tr>
+    <tr>
+      <td><strong>Risk-free Rate (r)</strong></td>
+      <td>${formatPercentage(params.riskFreeRate)}</td>
+    </tr>
+    <tr style="background-color: #f3f4f6;">
+      <td><strong>Risk-Neutral Probability (p)</strong></td>
+      <td><strong>${formatPercentage(calc.p * 100)}</strong></td>
+    </tr>
+    <tr style="background-color: #eff6ff;">
+      <td><strong>Call Option Price (C₀)</strong></td>
+      <td><strong style="color: #3c6ae5;">${formatCurrency(calc.C0)}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding-left: 2rem;">Call Up Payoff (Cᵤ)</td>
+      <td>${formatCurrency(calc.Cu)}</td>
+    </tr>
+    <tr>
+      <td style="padding-left: 2rem;">Call Down Payoff (Cᵨ)</td>
+      <td>${formatCurrency(calc.Cd)}</td>
+    </tr>
+    <tr style="background-color: #faf5ff;">
+      <td><strong>Put Option Price (P₀)</strong></td>
+      <td><strong style="color: #7a46ff;">${formatCurrency(calc.P0)}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding-left: 2rem;">Put Up Payoff (Pᵤ)</td>
+      <td>${formatCurrency(calc.Pu)}</td>
+    </tr>
+    <tr>
+      <td style="padding-left: 2rem;">Put Down Payoff (Pᵨ)</td>
+      <td>${formatCurrency(calc.Pd)}</td>
+    </tr>
+  `;
 }
 
 function renderCharts(calc, params) {
@@ -214,7 +332,7 @@ function renderAssetChart(calc, params) {
         }
       ]
     },
-    options: getChartOptions('Asset Price', '$')
+    options: getChartOptions('Asset Price (USD)', 'USD ')
   });
 }
 
@@ -251,7 +369,7 @@ function renderCallChart(calc, params) {
         }
       ]
     },
-    options: getChartOptions('Call Value', '$')
+    options: getChartOptions('Call Value (USD)', 'USD ')
   });
 }
 
@@ -288,7 +406,7 @@ function renderPutChart(calc, params) {
         }
       ]
     },
-    options: getChartOptions('Put Value', '$')
+    options: getChartOptions('Put Value (USD)', 'USD ')
   });
 }
 
@@ -305,9 +423,30 @@ function getChartOptions(yLabel, prefix = '') {
       }
     },
     scales: {
+      x: {
+        ticks: {
+          color: '#374151',
+          font: { weight: 500 }
+        },
+        grid: {
+          color: '#e5e7eb'
+        }
+      },
       y: {
-        title: { display: true, text: yLabel },
-        ticks: { callback: (v) => `${prefix}${v.toFixed(2)}` }
+        title: { 
+          display: true, 
+          text: yLabel,
+          color: '#374151',
+          font: { weight: 600 }
+        },
+        ticks: { 
+          callback: (v) => v.toFixed(2),
+          color: '#374151',
+          font: { weight: 500 }
+        },
+        grid: {
+          color: '#e5e7eb'
+        }
       }
     }
   };
