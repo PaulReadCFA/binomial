@@ -12,6 +12,7 @@
   
   <!-- Chart.js for visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -26,7 +27,7 @@
       <section id="equation-card" class="card">
         <h4 class="card-title">Binomial Option Pricing Equations</h4>
         <p class="equation-intro">
-          This model values options by calculating expected payoffs under risk-neutral probability.
+          This model values options using the hedge ratio approach.
         </p>
         
         <!-- Dynamic equation with actual values -->
@@ -194,7 +195,7 @@
 
             <!-- Educational note -->
             <div class="educational-note">
-              <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and risk-neutral probability.
+              <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and hedge ratios.
             </div>
           </div>
 

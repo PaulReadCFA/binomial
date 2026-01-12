@@ -3,6 +3,9 @@ import { calculateOptionMetrics } from './binomial-modules/calculations.js';
 import { validateField, validateAll, updateFieldError, updateValidationSummary, hasErrors } from './binomial-modules/validation.js';
 import { $, listen, debounce, formatCurrency, formatPercentage } from './binomial-modules/utils.js';
 
+// Register Chart.js datalabels plugin
+Chart.register(ChartDataLabels);
+
 let assetChart, callChart, putChart;
 let currentView = 'chart'; // 'chart' or 'table'
 
@@ -130,7 +133,8 @@ function renderResults(calc, params) {
         Fair value at t=0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">
-        <div>Payoffs: Up ${formatCurrency(calc.Cu)}, Down ${formatCurrency(calc.Cd)}</div>
+        <div>Hedge Ratio: ${calc.HRc.toFixed(4)}</div>
+        <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Cu)}, Down ${formatCurrency(calc.Cd)}</div>
       </div>
     </div>
     
@@ -141,7 +145,8 @@ function renderResults(calc, params) {
         Fair value at t=0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">
-        <div>Payoffs: Up ${formatCurrency(calc.Pu)}, Down ${formatCurrency(calc.Pd)}</div>
+        <div>Hedge Ratio: ${calc.HRp.toFixed(4)}</div>
+        <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Pu)}, Down ${formatCurrency(calc.Pd)}</div>
       </div>
     </div>
     
@@ -160,23 +165,80 @@ function renderDynamicEquation(calc, params) {
   if (!container) return;
   
   const r = params.riskFreeRate / 100;
-  const pVal = calc.p.toFixed(4);
-  const oneMinusP = (1 - calc.p).toFixed(4);
   const onePlusR = (1 + r).toFixed(4);
   
   const mathML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
       <div>
-        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #3c6ae5;">Call Option:</div>
+        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #3c6ae5;">Call Hedge Ratio:</div>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <mrow>
+            <msub><mi>HR</mi><mi>C</mi></msub>
+            <mo>=</mo>
+            <mfrac>
+              <mrow>
+                <msub><mi>C</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>C</mi><mi>d</mi></msub>
+              </mrow>
+              <mrow>
+                <msub><mi>S</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>S</mi><mi>d</mi></msub>
+              </mrow>
+            </mfrac>
+            <mo>=</mo>
+            <mfrac>
+              <mrow>
+                <mn>${calc.Cu.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${calc.Cd.toFixed(2)}</mn>
+              </mrow>
+              <mrow>
+                <mn>${params.su.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${params.sd.toFixed(2)}</mn>
+              </mrow>
+            </mfrac>
+            <mo>=</mo>
+            <mn mathcolor="#3c6ae5">${calc.HRc.toFixed(4)}</mn>
+          </mrow>
+        </math>
+        <div style="margin-top: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #3c6ae5;">Call Option Price:</div>
         <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
           <mrow>
             <msub><mi mathcolor="#3c6ae5">C</mi><mn>0</mn></msub>
             <mo>=</mo>
+            <msub><mi>S</mi><mn>0</mn></msub>
+            <mo>×</mo>
+            <msub><mi>HR</mi><mi>C</mi></msub>
+            <mo>−</mo>
             <mfrac>
               <mrow>
-                <mn>${pVal}</mn><mo>×</mo><mn>${calc.Cu.toFixed(2)}</mn>
-                <mo>+</mo>
-                <mn>${oneMinusP}</mn><mo>×</mo><mn>${calc.Cd.toFixed(2)}</mn>
+                <msub><mi>HR</mi><mi>C</mi></msub>
+                <mo>×</mo>
+                <msub><mi>S</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>C</mi><mi>u</mi></msub>
+              </mrow>
+              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
+            </mfrac>
+          </mrow>
+        </math>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <mrow>
+            <mo>=</mo>
+            <mn>${params.s0.toFixed(2)}</mn>
+            <mo>×</mo>
+            <mn>${calc.HRc.toFixed(4)}</mn>
+            <mo>−</mo>
+            <mfrac>
+              <mrow>
+                <mn>${calc.HRc.toFixed(4)}</mn>
+                <mo>×</mo>
+                <mn>${params.su.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${calc.Cu.toFixed(2)}</mn>
               </mrow>
               <mrow><mn>${onePlusR}</mn></mrow>
             </mfrac>
@@ -187,16 +249,75 @@ function renderDynamicEquation(calc, params) {
       </div>
       
       <div>
-        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #7a46ff;">Put Option:</div>
+        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #7a46ff;">Put Hedge Ratio:</div>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <mrow>
+            <msub><mi>HR</mi><mi>P</mi></msub>
+            <mo>=</mo>
+            <mfrac>
+              <mrow>
+                <msub><mi>P</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>P</mi><mi>d</mi></msub>
+              </mrow>
+              <mrow>
+                <msub><mi>S</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>S</mi><mi>d</mi></msub>
+              </mrow>
+            </mfrac>
+            <mo>=</mo>
+            <mfrac>
+              <mrow>
+                <mn>${calc.Pu.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${calc.Pd.toFixed(2)}</mn>
+              </mrow>
+              <mrow>
+                <mn>${params.su.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${params.sd.toFixed(2)}</mn>
+              </mrow>
+            </mfrac>
+            <mo>=</mo>
+            <mn mathcolor="#7a46ff">${calc.HRp.toFixed(4)}</mn>
+          </mrow>
+        </math>
+        <div style="margin-top: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #7a46ff;">Put Option Price:</div>
         <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
           <mrow>
             <msub><mi mathcolor="#7a46ff">P</mi><mn>0</mn></msub>
             <mo>=</mo>
+            <msub><mi>S</mi><mn>0</mn></msub>
+            <mo>×</mo>
+            <msub><mi>HR</mi><mi>P</mi></msub>
+            <mo>−</mo>
             <mfrac>
               <mrow>
-                <mn>${pVal}</mn><mo>×</mo><mn>${calc.Pu.toFixed(2)}</mn>
-                <mo>+</mo>
-                <mn>${oneMinusP}</mn><mo>×</mo><mn>${calc.Pd.toFixed(2)}</mn>
+                <msub><mi>HR</mi><mi>P</mi></msub>
+                <mo>×</mo>
+                <msub><mi>S</mi><mi>u</mi></msub>
+                <mo>−</mo>
+                <msub><mi>P</mi><mi>u</mi></msub>
+              </mrow>
+              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
+            </mfrac>
+          </mrow>
+        </math>
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <mrow>
+            <mo>=</mo>
+            <mn>${params.s0.toFixed(2)}</mn>
+            <mo>×</mo>
+            <mn>${calc.HRp.toFixed(4)}</mn>
+            <mo>−</mo>
+            <mfrac>
+              <mrow>
+                <mn>${calc.HRp.toFixed(4)}</mn>
+                <mo>×</mo>
+                <mn>${params.su.toFixed(2)}</mn>
+                <mo>−</mo>
+                <mn>${calc.Pu.toFixed(2)}</mn>
               </mrow>
               <mrow><mn>${onePlusR}</mn></mrow>
             </mfrac>
@@ -205,32 +326,6 @@ function renderDynamicEquation(calc, params) {
           </mrow>
         </math>
       </div>
-    </div>
-    
-    <div style="text-align: center; padding: 0.75rem; background: #f3f4f6; border-radius: 0.375rem; font-size: 0.875rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem;">Risk-Neutral Probability:</div>
-      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-        <mrow>
-          <mi>p</mi>
-          <mo>=</mo>
-          <mfrac>
-            <mrow>
-              <mn>${onePlusR}</mn><mo>×</mo><mn mathcolor="#059669">${params.s0.toFixed(2)}</mn>
-              <mo>−</mo>
-              <mn mathcolor="#dc2626">${params.sd.toFixed(2)}</mn>
-            </mrow>
-            <mrow>
-              <mn mathcolor="#059669">${params.su.toFixed(2)}</mn>
-              <mo>−</mo>
-              <mn mathcolor="#dc2626">${params.sd.toFixed(2)}</mn>
-            </mrow>
-          </mfrac>
-          <mo>=</mo>
-          <mn>${pVal}</mn>
-          <mo>=</mo>
-          <mtext>${formatPercentage(calc.p * 100)}</mtext>
-        </mrow>
-      </math>
     </div>
   `;
   
@@ -271,6 +366,10 @@ function renderTable(calc, params) {
       <td><strong style="color: #3c6ae5;">${formatCurrency(calc.C0)}</strong></td>
     </tr>
     <tr>
+      <td style="padding-left: 2rem;">Call Hedge Ratio (HRc)</td>
+      <td>${calc.HRc.toFixed(4)}</td>
+    </tr>
+    <tr>
       <td style="padding-left: 2rem;">Call Up Payoff (Cᵤ)</td>
       <td>${formatCurrency(calc.Cu)}</td>
     </tr>
@@ -281,6 +380,10 @@ function renderTable(calc, params) {
     <tr style="background-color: #faf5ff;">
       <td><strong>Put Option Price (P₀)</strong></td>
       <td><strong style="color: #7a46ff;">${formatCurrency(calc.P0)}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding-left: 2rem;">Put Hedge Ratio (HRp)</td>
+      <td>${calc.HRp.toFixed(4)}</td>
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Put Up Payoff (Pᵤ)</td>
@@ -414,12 +517,79 @@ function getChartOptions(yLabel, prefix = '') {
   return {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 35,
+        right: 65,
+        bottom: 25,
+        left: 65
+      }
+    },
     plugins: {
       legend: { display: false },
       tooltip: {
         callbacks: {
           label: (context) => `${context.dataset.label}: ${prefix}${context.parsed.y.toFixed(2)}`
         }
+      },
+      datalabels: {
+        display: true,
+        color: function(context) {
+          return context.dataset.borderColor;
+        },
+        font: {
+          weight: 'bold',
+          size: 11
+        },
+        formatter: function(value) {
+          return prefix + value.toFixed(2);
+        },
+        align: function(context) {
+          const index = context.dataIndex;
+          const value = context.dataset.data[index];
+          const dataset = context.chart.data.datasets;
+          
+          // Find max and min values across all datasets at this point
+          const values = dataset.map(ds => ds.data[index]);
+          const maxValue = Math.max(...values);
+          const minValue = Math.min(...values);
+          const midValue = (maxValue + minValue) / 2;
+          
+          // For t=0 (first point)
+          if (index === 0) {
+            // If it's near the top, go right and slightly down
+            if (value > midValue) {
+              return 'right';
+            }
+            // If it's near the bottom, go right and slightly up
+            else {
+              return 'top';
+            }
+          }
+          
+          // For t=1 (last point)
+          if (index === context.chart.data.labels.length - 1) {
+            // If it's near the top, go left and slightly down
+            if (value > midValue) {
+              return 'left';
+            }
+            // If it's near the bottom, go left and slightly up
+            else {
+              return 'top';
+            }
+          }
+          
+          // For middle points (shouldn't happen in 2-point chart)
+          if (value === maxValue) {
+            return 'bottom';
+          }
+          if (value === minValue) {
+            return 'top';
+          }
+          return 'center';
+        },
+        offset: 10,
+        clamp: true
       }
     },
     scales: {
