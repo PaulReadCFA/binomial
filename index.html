@@ -10,6 +10,25 @@
   <link rel="stylesheet" href="cfa-base.css">
   <link rel="stylesheet" href="binomial-specific.css">
   
+  <!-- MathJax 2.7.7 -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        displayMath: [['$$','$$'], ['\\[','\\]']],
+        processEscapes: true
+      },
+      "HTML-CSS": { 
+        linebreaks: { automatic: true },
+        scale: 90
+      },
+      menuSettings: {
+        inTabOrder: false
+      }
+    });
+  </script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  
   <!-- Chart.js for visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
@@ -18,20 +37,43 @@
   <div class="container">
     <!-- Skip Links for Accessibility -->
     <nav role="navigation" aria-label="Skip links">
-      <a href="#calculator" class="skip-link">Skip to calculator</a>
-      <a href="#visualizer" class="skip-link">Skip to binomial trees</a>
+      <a href="#s0" class="skip-link">Skip to data entry</a>
+      <a href="#binomial-table" class="skip-link">Skip to data table</a>
     </nav>
     
     <main class="content">
-      <!-- Card 1: Equation -->
-      <section id="equation-card" class="card">
+      <!-- Card 0: Static Equations -->
+      <section id="static-equations-card" class="card">
         <h4 class="card-title">Binomial Option Pricing Equations</h4>
+        
+        <div class="equation-container" style="text-align: left;">
+          <p style="margin-bottom: 1rem;">The value of a call option at t = 1 once it can be exercised is:</p>
+          <p style="margin-left: 2rem; margin-bottom: 0.5rem;">$C_u = \max(\color{#047857}{S_u} - K, 0)$ in the up state</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$C_d = \max(\color{#b91c1c}{S_d} - K, 0)$ in the down state</p>
+          
+          <p style="margin-bottom: 1rem;">The value of a put option at t = 1 once it can be exercised is:</p>
+          <p style="margin-left: 2rem; margin-bottom: 0.5rem;">$P_u = \max(K - \color{#047857}{S_u}, 0)$ in the up state</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$P_d = \max(K - \color{#b91c1c}{S_d}, 0)$ in the down state</p>
+          
+          <p style="margin-bottom: 1rem;">From these option values the hedge ratio for the call (HR<sub>C</sub>) and the hedge ratio for the put (HR<sub>P</sub>) can be computed by combining the stock with the appropriate option so that the combination becomes riskless:</p>
+          <p style="margin-left: 2rem; margin-bottom: 1rem;">$$HR_C = \frac{C_u - C_d}{\color{#047857}{S_u} - \color{#b91c1c}{S_d}}$$</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$$HR_P = \frac{P_u - P_d}{\color{#047857}{S_u} - \color{#b91c1c}{S_d}}$$</p>
+          
+          <p style="margin-bottom: 1rem;">This now allows us to compute the call and the put value at t = 0 as follows:</p>
+          <p style="margin-left: 2rem; margin-bottom: 1rem;">$$c_0 = \color{#047857}{S_0} \times HR_C - \frac{HR_C \times \color{#047857}{S_u} - C_u}{1 + r}$$</p>
+          <p style="margin-left: 2rem;">$$p_0 = \color{#047857}{S_0} \times HR_P - \frac{HR_P \times \color{#047857}{S_u} - P_u}{1 + r}$$</p>
+        </div>
+      </section>
+
+      <!-- Card 1: Dynamic Equations -->
+      <section id="equation-card" class="card">
+        <h4 class="card-title">Binomial Option Pricing Equations with Your Inputs</h4>
         <p class="equation-intro">
-          This model values options using the hedge ratio approach.
+          Based on your inputs, here are the calculated values:
         </p>
         
         <!-- Dynamic equation with actual values -->
-        <div class="equation-container" role="region" aria-label="Binomial pricing equations" aria-live="polite" id="dynamic-equation-container">
+        <div class="equation-container" role="region" aria-label="Binomial pricing calculations" aria-live="polite" id="dynamic-equation-container" style="min-height: 350px;">
           <div id="dynamic-mathml-equation">
             <!-- Populated by JavaScript -->
           </div>
@@ -51,7 +93,7 @@
             <div class="input-group-inline">
               <div class="input-inline">
                 <label for="s0" class="input-label-inline">
-                  Current price <span style="color: #059669;">(S₀)</span>:
+                  Current price <span style="color: #047857;">(S₀)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -59,13 +101,13 @@
                     type="number" 
                     id="s0" 
                     class="input-field-inline"
-                    min="0" step="0.01" value="40">
+                    min="0" step="1" value="40">
                 </div>
               </div>
 
               <div class="input-inline">
                 <label for="su" class="input-label-inline">
-                  Up-state <span style="color: #059669;">(Sᵤ)</span>:
+                  Up-state <span style="color: #047857;">(Sᵤ)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -73,13 +115,13 @@
                     type="number" 
                     id="su" 
                     class="input-field-inline"
-                    min="0" step="0.01" value="56">
+                    min="0" step="1" value="56">
                 </div>
               </div>
 
               <div class="input-inline">
                 <label for="sd" class="input-label-inline">
-                  Down-state <span style="color: #dc2626;">(Sᵨ)</span>:
+                  Down-state <span style="color: #b91c1c;">(Sᵨ)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -87,7 +129,7 @@
                     type="number" 
                     id="sd" 
                     class="input-field-inline"
-                    min="0" step="0.01" value="32">
+                    min="0" step="1" value="32">
                 </div>
               </div>
 
@@ -101,7 +143,7 @@
                     type="number" 
                     id="strike" 
                     class="input-field-inline"
-                    min="0" step="0.01" value="50">
+                    min="0" step="1" value="50">
                 </div>
               </div>
 
@@ -114,7 +156,7 @@
                     type="number" 
                     id="risk-free-rate" 
                     class="input-field-inline"
-                    min="-99" max="100" step="0.01" value="5">
+                    min="-99" max="100" step="0.1" value="5">
                   <span class="input-suffix-inline">%</span>
                 </div>
               </div>
@@ -144,11 +186,11 @@
             <!-- Legend -->
             <div class="legend" id="chart-legend" role="list" aria-label="Chart legend">
               <span class="legend-item" role="listitem">
-                <span class="legend-color" style="background-color: #059669;"></span>
+                <span class="legend-color" style="background-color: #047857;"></span>
                 Up path
               </span>
               <span class="legend-item" role="listitem">
-                <span class="legend-color" style="background-color: #dc2626;"></span>
+                <span class="legend-color" style="background-color: #b91c1c;"></span>
                 Down path
               </span>
             </div>
@@ -165,37 +207,34 @@
             <!-- Chart containers -->
             <div id="charts-wrapper">
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title">Asset Price Evolution</h5>
+                <h5 class="binomial-chart-title" id="asset-chart-title">Asset Price Evolution</h5>
                 <div class="binomial-chart-container" 
                      role="region" 
-                     aria-labelledby="binomial-chart-title"
+                     aria-labelledby="asset-chart-title"
                      tabindex="-1">
                   <canvas id="asset-chart"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title">Call Option Valuation</h5>
+                <h5 class="binomial-chart-title" id="call-chart-title">Call Option Valuation</h5>
                 <div class="binomial-chart-container" 
                      role="region"
+                     aria-labelledby="call-chart-title"
                      tabindex="-1">
                   <canvas id="call-chart"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title">Put Option Valuation</h5>
+                <h5 class="binomial-chart-title" id="put-chart-title">Put Option Valuation</h5>
                 <div class="binomial-chart-container" 
                      role="region"
+                     aria-labelledby="put-chart-title"
                      tabindex="-1">
                   <canvas id="put-chart"></canvas>
                 </div>
               </div>
-            </div>
-
-            <!-- Educational note -->
-            <div class="educational-note">
-              <strong>Binomial Model:</strong> Values options by calculating payoffs at expiration and discounting back using the risk-free rate and hedge ratios.
             </div>
           </div>
 

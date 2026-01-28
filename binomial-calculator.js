@@ -16,6 +16,12 @@ function init() {
   subscribe(handleStateChange);
   updateCalculations();
   runSelfTests();
+  
+  // Trigger MathJax rendering for static equations
+  if (window.MathJax && window.MathJax.Hub) {
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+  }
+  
   console.log('Binomial Calculator ready');
 }
 
@@ -26,6 +32,46 @@ function setupViewToggle() {
   if (chartBtn && tableBtn) {
     listen(chartBtn, 'click', () => switchView('chart'));
     listen(tableBtn, 'click', () => switchView('table'));
+    
+    // Keyboard navigation for both buttons
+    listen(chartBtn, 'keydown', (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        switchView('table');
+        tableBtn.focus();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        // Stay on chart button, ensure chart view
+        switchView('chart');
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        switchView('chart');
+        // Focus on first chart
+        const firstChart = $('#asset-chart');
+        if (firstChart) {
+          const container = firstChart.closest('.binomial-chart-container');
+          if (container) container.focus();
+        }
+      }
+    });
+    
+    listen(tableBtn, 'keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        switchView('chart');
+        chartBtn.focus();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        // Stay on table button, ensure table view
+        switchView('table');
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        switchView('table');
+        // Focus on table
+        const table = $('#binomial-table');
+        if (table) table.focus();
+      }
+    });
   }
 }
 
@@ -128,11 +174,11 @@ function renderResults(calc, params) {
   container.innerHTML = `
     <div class="result-box call-option">
       <h5 class="result-title call-option">Call Option Price</h5>
-      <div class="result-value" style="color: #3c6ae5;" aria-live="polite">${formatCurrency(calc.C0)}</div>
+      <div class="result-value" style="color: #1e40af;" aria-live="polite">${formatCurrency(calc.C0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
         Fair value at t=0
       </div>
-      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">
+      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${calc.HRc.toFixed(4)}</div>
         <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Cu)}, Down ${formatCurrency(calc.Cd)}</div>
       </div>
@@ -140,21 +186,13 @@ function renderResults(calc, params) {
     
     <div class="result-box put-option">
       <h5 class="result-title put-option">Put Option Price</h5>
-      <div class="result-value" style="color: #7a46ff;" aria-live="polite">${formatCurrency(calc.P0)}</div>
+      <div class="result-value" style="color: #6d28d9;" aria-live="polite">${formatCurrency(calc.P0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
         Fair value at t=0
       </div>
-      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #6b7280;">
+      <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${calc.HRp.toFixed(4)}</div>
         <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Pu)}, Down ${formatCurrency(calc.Pd)}</div>
-      </div>
-    </div>
-    
-    <div class="result-box risk-neutral">
-      <h5 class="result-title" style="font-size: 0.875rem; font-weight: 600;">Risk-Neutral Probability</h5>
-      <div style="font-size: 1.5rem; font-family: monospace; color: #374151; font-weight: 600;">${formatPercentage(calc.p * 100)}</div>
-      <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
-        Probability of up movement
       </div>
     </div>
   `;
@@ -167,169 +205,46 @@ function renderDynamicEquation(calc, params) {
   const r = params.riskFreeRate / 100;
   const onePlusR = (1 + r).toFixed(4);
   
-  const mathML = `
+  const content = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
-      <div>
-        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #3c6ae5;">Call Hedge Ratio:</div>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <msub><mi>HR</mi><mi>C</mi></msub>
-            <mo>=</mo>
-            <mfrac>
-              <mrow>
-                <msub><mi>C</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>C</mi><mi>d</mi></msub>
-              </mrow>
-              <mrow>
-                <msub><mi>S</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>S</mi><mi>d</mi></msub>
-              </mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mfrac>
-              <mrow>
-                <mn>${calc.Cu.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${calc.Cd.toFixed(2)}</mn>
-              </mrow>
-              <mrow>
-                <mn>${params.su.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${params.sd.toFixed(2)}</mn>
-              </mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mn mathcolor="#3c6ae5">${calc.HRc.toFixed(4)}</mn>
-          </mrow>
-        </math>
-        <div style="margin-top: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #3c6ae5;">Call Option Price:</div>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <msub><mi mathcolor="#3c6ae5">C</mi><mn>0</mn></msub>
-            <mo>=</mo>
-            <msub><mi>S</mi><mn>0</mn></msub>
-            <mo>×</mo>
-            <msub><mi>HR</mi><mi>C</mi></msub>
-            <mo>−</mo>
-            <mfrac>
-              <mrow>
-                <msub><mi>HR</mi><mi>C</mi></msub>
-                <mo>×</mo>
-                <msub><mi>S</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>C</mi><mi>u</mi></msub>
-              </mrow>
-              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
-            </mfrac>
-          </mrow>
-        </math>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <mo>=</mo>
-            <mn>${params.s0.toFixed(2)}</mn>
-            <mo>×</mo>
-            <mn>${calc.HRc.toFixed(4)}</mn>
-            <mo>−</mo>
-            <mfrac>
-              <mrow>
-                <mn>${calc.HRc.toFixed(4)}</mn>
-                <mo>×</mo>
-                <mn>${params.su.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${calc.Cu.toFixed(2)}</mn>
-              </mrow>
-              <mrow><mn>${onePlusR}</mn></mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mn mathcolor="#3c6ae5">${calc.C0.toFixed(2)}</mn>
-          </mrow>
-        </math>
+      <div style="text-align: left;">
+        <div style="font-weight: 600; margin-bottom: 0.75rem; color: #1e40af; font-size: 1rem;">Call Hedge Ratio:</div>
+        <p style="margin-left: 1rem;">
+          $$HR_C = \\frac{${calc.Cu.toFixed(2)} - ${calc.Cd.toFixed(2)}}{\\color{#047857}{${params.su.toFixed(2)}} - \\color{#b91c1c}{${params.sd.toFixed(2)}}} = \\color{#1e40af}{${calc.HRc.toFixed(4)}}$$
+        </p>
+        
+        <div style="margin-top: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; color: #1e40af; font-size: 1rem;">Call Option Price:</div>
+        <p style="margin-left: 1rem;">
+          $$c_0 = \\color{#047857}{${params.s0.toFixed(2)}} \\times ${calc.HRc.toFixed(4)} - \\frac{${calc.HRc.toFixed(4)} \\times \\color{#047857}{${params.su.toFixed(2)}} - ${calc.Cu.toFixed(2)}}{${onePlusR}}$$
+        </p>
+        <p style="margin-left: 1rem; margin-top: 0.5rem;">
+          $$= \\color{#1e40af}{${calc.C0.toFixed(2)}}$$
+        </p>
       </div>
       
-      <div>
-        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #7a46ff;">Put Hedge Ratio:</div>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <msub><mi>HR</mi><mi>P</mi></msub>
-            <mo>=</mo>
-            <mfrac>
-              <mrow>
-                <msub><mi>P</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>P</mi><mi>d</mi></msub>
-              </mrow>
-              <mrow>
-                <msub><mi>S</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>S</mi><mi>d</mi></msub>
-              </mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mfrac>
-              <mrow>
-                <mn>${calc.Pu.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${calc.Pd.toFixed(2)}</mn>
-              </mrow>
-              <mrow>
-                <mn>${params.su.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${params.sd.toFixed(2)}</mn>
-              </mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mn mathcolor="#7a46ff">${calc.HRp.toFixed(4)}</mn>
-          </mrow>
-        </math>
-        <div style="margin-top: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #7a46ff;">Put Option Price:</div>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <msub><mi mathcolor="#7a46ff">P</mi><mn>0</mn></msub>
-            <mo>=</mo>
-            <msub><mi>S</mi><mn>0</mn></msub>
-            <mo>×</mo>
-            <msub><mi>HR</mi><mi>P</mi></msub>
-            <mo>−</mo>
-            <mfrac>
-              <mrow>
-                <msub><mi>HR</mi><mi>P</mi></msub>
-                <mo>×</mo>
-                <msub><mi>S</mi><mi>u</mi></msub>
-                <mo>−</mo>
-                <msub><mi>P</mi><mi>u</mi></msub>
-              </mrow>
-              <mrow><mn>1</mn><mo>+</mo><mi>r</mi></mrow>
-            </mfrac>
-          </mrow>
-        </math>
-        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
-          <mrow>
-            <mo>=</mo>
-            <mn>${params.s0.toFixed(2)}</mn>
-            <mo>×</mo>
-            <mn>${calc.HRp.toFixed(4)}</mn>
-            <mo>−</mo>
-            <mfrac>
-              <mrow>
-                <mn>${calc.HRp.toFixed(4)}</mn>
-                <mo>×</mo>
-                <mn>${params.su.toFixed(2)}</mn>
-                <mo>−</mo>
-                <mn>${calc.Pu.toFixed(2)}</mn>
-              </mrow>
-              <mrow><mn>${onePlusR}</mn></mrow>
-            </mfrac>
-            <mo>=</mo>
-            <mn mathcolor="#7a46ff">${calc.P0.toFixed(2)}</mn>
-          </mrow>
-        </math>
+      <div style="text-align: left;">
+        <div style="font-weight: 600; margin-bottom: 0.75rem; color: #6d28d9; font-size: 1rem;">Put Hedge Ratio:</div>
+        <p style="margin-left: 1rem;">
+          $$HR_P = \\frac{${calc.Pu.toFixed(2)} - ${calc.Pd.toFixed(2)}}{\\color{#047857}{${params.su.toFixed(2)}} - \\color{#b91c1c}{${params.sd.toFixed(2)}}} = \\color{#6d28d9}{${calc.HRp.toFixed(4)}}$$
+        </p>
+        
+        <div style="margin-top: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; color: #6d28d9; font-size: 1rem;">Put Option Price:</div>
+        <p style="margin-left: 1rem;">
+          $$p_0 = \\color{#047857}{${params.s0.toFixed(2)}} \\times ${calc.HRp.toFixed(4)} - \\frac{${calc.HRp.toFixed(4)} \\times \\color{#047857}{${params.su.toFixed(2)}} - ${calc.Pu.toFixed(2)}}{${onePlusR}}$$
+        </p>
+        <p style="margin-left: 1rem; margin-top: 0.5rem;">
+          $$= \\color{#6d28d9}{${calc.P0.toFixed(2)}}$$
+        </p>
       </div>
     </div>
   `;
   
-  container.innerHTML = mathML;
+  container.innerHTML = content;
+  
+  // Typeset with MathJax
+  if (window.MathJax && window.MathJax.Hub) {
+    MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
+  }
 }
 
 function renderTable(calc, params) {
@@ -357,13 +272,9 @@ function renderTable(calc, params) {
       <td><strong>Risk-free Rate (r)</strong></td>
       <td>${formatPercentage(params.riskFreeRate)}</td>
     </tr>
-    <tr style="background-color: #f3f4f6;">
-      <td><strong>Risk-Neutral Probability (p)</strong></td>
-      <td><strong>${formatPercentage(calc.p * 100)}</strong></td>
-    </tr>
     <tr style="background-color: #eff6ff;">
       <td><strong>Call Option Price (C₀)</strong></td>
-      <td><strong style="color: #3c6ae5;">${formatCurrency(calc.C0)}</strong></td>
+      <td><strong style="color: #1e40af;">${formatCurrency(calc.C0)}</strong></td>
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Call Hedge Ratio (HRc)</td>
@@ -379,7 +290,7 @@ function renderTable(calc, params) {
     </tr>
     <tr style="background-color: #faf5ff;">
       <td><strong>Put Option Price (P₀)</strong></td>
-      <td><strong style="color: #7a46ff;">${formatCurrency(calc.P0)}</strong></td>
+      <td><strong style="color: #6d28d9;">${formatCurrency(calc.P0)}</strong></td>
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Put Hedge Ratio (HRp)</td>
@@ -418,8 +329,8 @@ function renderAssetChart(calc, params) {
         {
           label: 'Up Path',
           data: [params.s0, params.su],
-          borderColor: '#059669',
-          backgroundColor: '#059669',
+          borderColor: '#047857',
+          backgroundColor: '#047857',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -427,8 +338,8 @@ function renderAssetChart(calc, params) {
         {
           label: 'Down Path',
           data: [params.s0, params.sd],
-          borderColor: '#dc2626',
-          backgroundColor: '#dc2626',
+          borderColor: '#b91c1c',
+          backgroundColor: '#b91c1c',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -455,8 +366,8 @@ function renderCallChart(calc, params) {
         {
           label: 'Up Path',
           data: [calc.C0, calc.Cu],
-          borderColor: '#059669',
-          backgroundColor: '#059669',
+          borderColor: '#047857',
+          backgroundColor: '#047857',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -464,8 +375,8 @@ function renderCallChart(calc, params) {
         {
           label: 'Down Path',
           data: [calc.C0, calc.Cd],
-          borderColor: '#dc2626',
-          backgroundColor: '#dc2626',
+          borderColor: '#b91c1c',
+          backgroundColor: '#b91c1c',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -492,8 +403,8 @@ function renderPutChart(calc, params) {
         {
           label: 'Up Path',
           data: [calc.P0, calc.Pu],
-          borderColor: '#059669',
-          backgroundColor: '#059669',
+          borderColor: '#047857',
+          backgroundColor: '#047857',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -501,8 +412,8 @@ function renderPutChart(calc, params) {
         {
           label: 'Down Path',
           data: [calc.P0, calc.Pd],
-          borderColor: '#dc2626',
-          backgroundColor: '#dc2626',
+          borderColor: '#b91c1c',
+          backgroundColor: '#b91c1c',
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
@@ -519,10 +430,10 @@ function getChartOptions(yLabel, prefix = '') {
     maintainAspectRatio: false,
     layout: {
       padding: {
-        top: 35,
-        right: 65,
+        top: 40,
+        right: 70,
         bottom: 25,
-        left: 65
+        left: 70
       }
     },
     plugins: {
@@ -542,7 +453,7 @@ function getChartOptions(yLabel, prefix = '') {
           size: 11
         },
         formatter: function(value) {
-          return prefix + value.toFixed(2);
+          return value.toFixed(2);
         },
         align: function(context) {
           const index = context.dataIndex;
@@ -569,13 +480,17 @@ function getChartOptions(yLabel, prefix = '') {
           
           // For t=1 (last point)
           if (index === context.chart.data.labels.length - 1) {
-            // If it's near the top, go left and slightly down
-            if (value > midValue) {
-              return 'left';
+            // If it's the max value, position higher above
+            if (value === maxValue) {
+              return 'top';
             }
             // If it's near the bottom, go left and slightly up
-            else {
+            else if (value <= midValue) {
               return 'top';
+            }
+            // Middle values go left
+            else {
+              return 'left';
             }
           }
           
@@ -588,7 +503,7 @@ function getChartOptions(yLabel, prefix = '') {
           }
           return 'center';
         },
-        offset: 10,
+        offset: 12,
         clamp: true
       }
     },
@@ -599,8 +514,10 @@ function getChartOptions(yLabel, prefix = '') {
           font: { weight: 500 }
         },
         grid: {
-          color: '#e5e7eb'
-        }
+          color: '#e5e7eb',
+          offset: true
+        },
+        offset: true
       },
       y: {
         title: { 

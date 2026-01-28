@@ -1,19 +1,19 @@
 /* Binomial Option Pricing Calculator Specific Styles */
 :root {
-  --color-call-option: #3c6ae5;            /* Blue - call option */
-  --color-put-option: #7a46ff;             /* Purple - put option */
-  --color-up-path: #059669;                /* Green - up movement */
-  --color-down-path: #dc2626;              /* Red - down movement */
+  --color-call-option: #1e40af;            /* Blue - call option (darker for WCAG AA) */
+  --color-put-option: #6d28d9;             /* Purple - put option (darker for WCAG AA) */
+  --color-up-path: #047857;                /* Green - up movement (darker for WCAG AA) */
+  --color-down-path: #b91c1c;              /* Red - down movement (darker for WCAG AA) */
 }
 
 .result-box.call-option {
   background-color: var(--color-bg-blue);
-  border-color: var(--color-blue-interactive);
+  border-color: #1e40af;
 }
 
 .result-box.put-option {
   background-color: var(--color-bg-purple);
-  border-color: var(--color-purple-bold);
+  border-color: #6d28d9;
 }
 
 .result-box.risk-neutral {
@@ -24,13 +24,13 @@
 .result-title.call-option {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-blue-interactive);
+  color: #1e40af;
 }
 
 .result-title.put-option {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-purple-bold);
+  color: #6d28d9;
 }
 
 .result-value {

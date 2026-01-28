@@ -36,12 +36,12 @@ export function validateAll(inputs) {
   });
   
   if (inputs.su > 0 && inputs.sd > 0 && inputs.su <= inputs.sd) {
-    errors.upDown = 'Up-state must exceed down-state';
+    errors.upDown = 'Up-state price must be greater than down-state price';
   }
   
   if (inputs.s0 > 0 && inputs.su > 0 && inputs.sd > 0) {
     if (!(inputs.sd < inputs.s0 && inputs.s0 < inputs.su)) {
-      errors.currentPrice = 'Current price should be between down and up states';
+      errors.currentPrice = 'Current price must be between down-state and up-state prices';
     }
   }
   
