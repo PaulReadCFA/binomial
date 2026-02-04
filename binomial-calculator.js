@@ -33,6 +33,14 @@ function setupViewToggle() {
     listen(chartBtn, 'click', () => switchView('chart'));
     listen(tableBtn, 'click', () => switchView('table'));
     
+    // Handle skip link to table button - switch to table view
+    listen(tableBtn, 'focus', () => {
+      // If coming from skip link, switch to table view
+      if (document.activeElement === tableBtn && currentView === 'chart') {
+        switchView('table');
+      }
+    });
+    
     // Keyboard navigation for both buttons
     listen(chartBtn, 'keydown', (e) => {
       if (e.key === 'ArrowRight') {
@@ -155,6 +163,17 @@ function updateCalculations() {
   }
 }
 
+function announceCalculationsToScreenReader(calc) {
+  const announcement = $('#sr-announcement');
+  if (!announcement) return;
+  
+  announcement.textContent = 
+    `Calculations updated. ` +
+    `Call option price: ${formatCurrency(calc.C0)}. ` +
+    `Put option price: ${formatCurrency(calc.P0)}. ` +
+    `Risk-neutral probability: ${formatPercentage(calc.p * 100)}.`;
+}
+
 function handleStateChange(newState) {
   const { optionCalculations } = newState;
   if (!optionCalculations) return;
@@ -165,6 +184,9 @@ function handleStateChange(newState) {
   if (currentView === 'table') {
     renderTable(optionCalculations, newState);
   }
+  
+  // Announce changes to screen readers
+  announceCalculationsToScreenReader(optionCalculations);
 }
 
 function renderResults(calc, params) {
@@ -174,7 +196,7 @@ function renderResults(calc, params) {
   container.innerHTML = `
     <div class="result-box call-option">
       <h5 class="result-title call-option">Call Option Price</h5>
-      <div class="result-value" style="color: #1e40af;" aria-live="polite">${formatCurrency(calc.C0)}</div>
+      <div class="result-value" style="color: #1e40af;">${formatCurrency(calc.C0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
         Fair value at t=0
       </div>
@@ -186,7 +208,7 @@ function renderResults(calc, params) {
     
     <div class="result-box put-option">
       <h5 class="result-title put-option">Put Option Price</h5>
-      <div class="result-value" style="color: #6d28d9;" aria-live="polite">${formatCurrency(calc.P0)}</div>
+      <div class="result-value" style="color: #6d28d9;">${formatCurrency(calc.P0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
         Fair value at t=0
       </div>
@@ -253,56 +275,56 @@ function renderTable(calc, params) {
   
   tbody.innerHTML = `
     <tr>
-      <td><strong>Asset Price (S₀)</strong></td>
-      <td>${formatCurrency(params.s0)}</td>
+      <td><strong>Asset Price (<span style="color: #047857;">S<sub>0</sub></span>)</strong></td>
+      <td>${params.s0.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Up-state (Sᵤ)</strong></td>
-      <td>${formatCurrency(params.su)}</td>
+      <td><strong>Up-state (<span style="color: #047857;">S<sub>u</sub></span>)</strong></td>
+      <td>${params.su.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Down-state (Sᵨ)</strong></td>
-      <td>${formatCurrency(params.sd)}</td>
+      <td><strong>Down-state (<span style="color: #b91c1c;">S<sub>d</sub></span>)</strong></td>
+      <td>${params.sd.toFixed(2)}</td>
     </tr>
     <tr>
       <td><strong>Strike Price (K)</strong></td>
-      <td>${formatCurrency(params.strike)}</td>
+      <td>${params.strike.toFixed(2)}</td>
     </tr>
     <tr>
       <td><strong>Risk-free Rate (r)</strong></td>
-      <td>${formatPercentage(params.riskFreeRate)}</td>
+      <td>${params.riskFreeRate.toFixed(2)}%</td>
     </tr>
     <tr style="background-color: #eff6ff;">
-      <td><strong>Call Option Price (C₀)</strong></td>
-      <td><strong style="color: #1e40af;">${formatCurrency(calc.C0)}</strong></td>
+      <td><strong>Call Option Price (<span style="color: #1e40af;">C<sub>0</sub></span>)</strong></td>
+      <td><strong style="color: #1e40af;">${calc.C0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Hedge Ratio (HRc)</td>
+      <td style="padding-left: 2rem;">Call Hedge Ratio (HR<sub>C</sub>)</td>
       <td>${calc.HRc.toFixed(4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Up Payoff (Cᵤ)</td>
-      <td>${formatCurrency(calc.Cu)}</td>
+      <td style="padding-left: 2rem;">Call Up Payoff (<span style="color: #1e40af;">C<sub>u</sub></span>)</td>
+      <td>${calc.Cu.toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Down Payoff (Cᵨ)</td>
-      <td>${formatCurrency(calc.Cd)}</td>
+      <td style="padding-left: 2rem;">Call Down Payoff (<span style="color: #1e40af;">C<sub>d</sub></span>)</td>
+      <td>${calc.Cd.toFixed(2)}</td>
     </tr>
     <tr style="background-color: #faf5ff;">
-      <td><strong>Put Option Price (P₀)</strong></td>
-      <td><strong style="color: #6d28d9;">${formatCurrency(calc.P0)}</strong></td>
+      <td><strong>Put Option Price (<span style="color: #6d28d9;">P<sub>0</sub></span>)</strong></td>
+      <td><strong style="color: #6d28d9;">${calc.P0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Hedge Ratio (HRp)</td>
+      <td style="padding-left: 2rem;">Put Hedge Ratio (HR<sub>P</sub>)</td>
       <td>${calc.HRp.toFixed(4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Up Payoff (Pᵤ)</td>
-      <td>${formatCurrency(calc.Pu)}</td>
+      <td style="padding-left: 2rem;">Put Up Payoff (<span style="color: #6d28d9;">P<sub>u</sub></span>)</td>
+      <td>${calc.Pu.toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Down Payoff (Pᵨ)</td>
-      <td>${formatCurrency(calc.Pd)}</td>
+      <td style="padding-left: 2rem;">Put Down Payoff (<span style="color: #6d28d9;">P<sub>d</sub></span>)</td>
+      <td>${calc.Pd.toFixed(2)}</td>
     </tr>
   `;
 }
@@ -333,7 +355,12 @@ function renderAssetChart(calc, params) {
           backgroundColor: '#047857',
           borderWidth: 2,
           pointRadius: 6,
-          pointHoverRadius: 8
+          pointHoverRadius: 8,
+          datalabels: {
+            labels: {
+              title: null
+            }
+          }
         },
         {
           label: 'Down Path',
@@ -342,11 +369,29 @@ function renderAssetChart(calc, params) {
           backgroundColor: '#b91c1c',
           borderWidth: 2,
           pointRadius: 6,
-          pointHoverRadius: 8
+          pointHoverRadius: 8,
+          datalabels: {
+            labels: {
+              title: null
+            }
+          }
         }
       ]
     },
-    options: getChartOptions('Asset Price (USD)', 'USD ')
+    options: getChartOptions('Asset price (USD)', 'USD ', false, function(value, context) {
+      const dataIndex = context.dataIndex;
+      const datasetIndex = context.datasetIndex;
+      
+      if (dataIndex === 0) {
+        return `S_0 = ${value.toFixed(2)}`;
+      } else {
+        if (datasetIndex === 0) {
+          return `S_u = ${value.toFixed(2)}`;
+        } else {
+          return `S_d = ${value.toFixed(2)}`;
+        }
+      }
+    }, false)
   });
 }
 
@@ -383,7 +428,20 @@ function renderCallChart(calc, params) {
         }
       ]
     },
-    options: getChartOptions('Call Value (USD)', 'USD ')
+    options: getChartOptions('Call option value (USD)', 'USD ', false, function(value, context) {
+      const dataIndex = context.dataIndex;
+      const datasetIndex = context.datasetIndex;
+      
+      if (dataIndex === 0) {
+        return `C_0 = ${value.toFixed(2)}`;
+      } else {
+        if (datasetIndex === 0) {
+          return `C_u = ${value.toFixed(2)}`;
+        } else {
+          return `C_d = ${value.toFixed(2)}`;
+        }
+      }
+    }, false)
   });
 }
 
@@ -420,20 +478,33 @@ function renderPutChart(calc, params) {
         }
       ]
     },
-    options: getChartOptions('Put Value (USD)', 'USD ')
+    options: getChartOptions('Put option value (USD)', 'USD ', false, function(value, context) {
+      const dataIndex = context.dataIndex;
+      const datasetIndex = context.datasetIndex;
+      
+      if (dataIndex === 0) {
+        return `P_0 = ${value.toFixed(2)}`;
+      } else {
+        if (datasetIndex === 0) {
+          return `P_u = ${value.toFixed(2)}`;
+        } else {
+          return `P_d = ${value.toFixed(2)}`;
+        }
+      }
+    }, false)  // Keep standard y-axis (not inverted)
   });
 }
 
-function getChartOptions(yLabel, prefix = '') {
-  return {
+function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelFormatter = null, invertYAxis = false) {
+  const options = {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
       padding: {
         top: 40,
-        right: 70,
+        right: 120,
         bottom: 25,
-        left: 70
+        left: 100
       }
     },
     plugins: {
@@ -450,61 +521,39 @@ function getChartOptions(yLabel, prefix = '') {
         },
         font: {
           weight: 'bold',
-          size: 11
+          size: 15
         },
-        formatter: function(value) {
+        backgroundColor: function(context) {
+          return 'rgba(255, 255, 255, 0.9)';
+        },
+        borderColor: function(context) {
+          return context.dataset.borderColor;
+        },
+        borderWidth: 2,
+        borderRadius: 4,
+        padding: 6,
+        formatter: customLabelFormatter || function(value) {
           return value.toFixed(2);
         },
         align: function(context) {
           const index = context.dataIndex;
-          const value = context.dataset.data[index];
-          const dataset = context.chart.data.datasets;
-          
-          // Find max and min values across all datasets at this point
-          const values = dataset.map(ds => ds.data[index]);
-          const maxValue = Math.max(...values);
-          const minValue = Math.min(...values);
-          const midValue = (maxValue + minValue) / 2;
           
           // For t=0 (first point)
           if (index === 0) {
-            // If it's near the top, go right and slightly down
-            if (value > midValue) {
-              return 'right';
-            }
-            // If it's near the bottom, go right and slightly up
-            else {
-              return 'top';
-            }
+            // Position to the left of the point
+            return 'left';
           }
           
           // For t=1 (last point)
           if (index === context.chart.data.labels.length - 1) {
-            // If it's the max value, position higher above
-            if (value === maxValue) {
-              return 'top';
-            }
-            // If it's near the bottom, go left and slightly up
-            else if (value <= midValue) {
-              return 'top';
-            }
-            // Middle values go left
-            else {
-              return 'left';
-            }
+            // Position to the right of the point
+            return 'right';
           }
           
-          // For middle points (shouldn't happen in 2-point chart)
-          if (value === maxValue) {
-            return 'bottom';
-          }
-          if (value === minValue) {
-            return 'top';
-          }
           return 'center';
         },
-        offset: 12,
-        clamp: true
+        offset: 15,
+        clamp: false
       }
     },
     scales: {
@@ -520,13 +569,16 @@ function getChartOptions(yLabel, prefix = '') {
         offset: true
       },
       y: {
+        display: !hideYAxis,
+        reverse: invertYAxis,
         title: { 
-          display: true, 
+          display: !hideYAxis, 
           text: yLabel,
           color: '#374151',
           font: { weight: 600 }
         },
         ticks: { 
+          display: !hideYAxis,
           callback: (v) => v.toFixed(2),
           color: '#374151',
           font: { weight: 500 }
@@ -537,6 +589,8 @@ function getChartOptions(yLabel, prefix = '') {
       }
     }
   };
+  
+  return options;
 }
 
 function runSelfTests() {

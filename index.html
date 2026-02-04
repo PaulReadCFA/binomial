@@ -34,12 +34,27 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 </head>
 <body>
+  <noscript>
+    <div style="padding: 2rem; background: #fef2f2; border: 2px solid #b91c1c; border-radius: 0.5rem; margin: 2rem; text-align: center;">
+      <h2 style="color: #991b1c; margin-bottom: 1rem;">JavaScript Required</h2>
+      <p style="color: #374151; font-size: 1.125rem; margin-bottom: 0.5rem;">
+        This Binomial Option Pricing Calculator requires JavaScript to function.
+      </p>
+      <p style="color: #6b7280;">
+        Please enable JavaScript in your browser settings to use this calculator.
+      </p>
+    </div>
+  </noscript>
+  
   <div class="container">
     <!-- Skip Links for Accessibility -->
     <nav role="navigation" aria-label="Skip links">
       <a href="#s0" class="skip-link">Skip to data entry</a>
-      <a href="#binomial-table" class="skip-link">Skip to data table</a>
+      <a href="#view-table-btn" class="skip-link">Skip to data table</a>
     </nav>
+    
+    <!-- Screen reader announcement region -->
+    <div id="sr-announcement" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     
     <main class="content">
       <!-- Card 0: Static Equations -->
@@ -73,7 +88,7 @@
         </p>
         
         <!-- Dynamic equation with actual values -->
-        <div class="equation-container" role="region" aria-label="Binomial pricing calculations" aria-live="polite" id="dynamic-equation-container" style="min-height: 350px;">
+        <div class="equation-container" role="region" aria-label="Binomial pricing calculations" id="dynamic-equation-container" style="min-height: 350px;">
           <div id="dynamic-mathml-equation">
             <!-- Populated by JavaScript -->
           </div>
@@ -84,6 +99,10 @@
       <section class="card" id="calculator" tabindex="-1">
         <h4 class="card-title">Binomial Option Pricing Calculator</h4>
         <div class="card-content">
+          <p style="margin-bottom: 1.5rem; color: #374151;">
+            Enter your asset prices, strike price, and risk-free rate below. The option prices and visualizations will update automatically as you change the values.
+          </p>
+          
           <!-- Input controls -->
           <div class="input-section">
             <p class="sr-only" id="inputHelp">
@@ -93,7 +112,7 @@
             <div class="input-group-inline">
               <div class="input-inline">
                 <label for="s0" class="input-label-inline">
-                  Current price <span style="color: #047857;">(S₀)</span>:
+                  Current price <span style="color: #047857;">(S<sub>0</sub>)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -107,7 +126,7 @@
 
               <div class="input-inline">
                 <label for="su" class="input-label-inline">
-                  Up-state <span style="color: #047857;">(Sᵤ)</span>:
+                  Up-state <span style="color: #047857;">(S<sub>u</sub>)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -121,7 +140,7 @@
 
               <div class="input-inline">
                 <label for="sd" class="input-label-inline">
-                  Down-state <span style="color: #b91c1c;">(Sᵨ)</span>:
+                  Down-state <span style="color: #b91c1c;">(S<sub>d</sub>)</span>:
                 </label>
                 <div class="input-with-suffix-inline">
                   <span class="input-prefix">USD</span>
@@ -176,13 +195,19 @@
         <div class="card-header-with-controls">
           <h4 class="card-title">Binomial Trees</h4>
           <div class="button-group">
-            <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true">Chart</button>
-            <button id="view-table-btn" class="toggle-btn" aria-pressed="false">Table</button>
+            <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true" aria-label="View chart">Chart</button>
+            <button id="view-table-btn" class="toggle-btn" aria-pressed="false" aria-label="View table">Table</button>
           </div>
         </div>
         <div class="card-content">
           <!-- Chart view -->
           <div id="chart-view">
+            <!-- Accessibility note -->
+            <div class="accessibility-note" style="margin-bottom: 1rem; padding: 0.75rem; background: #eff6ff; border-left: 4px solid #3c6ae5; border-radius: 0.375rem; font-size: 0.875rem;">
+              <strong>Accessible Data:</strong> The charts below display visual binomial trees. 
+              For accessible tabular data, use the <strong>Table</strong> button above.
+            </div>
+            
             <!-- Legend -->
             <div class="legend" id="chart-legend" role="list" aria-label="Chart legend">
               <span class="legend-item" role="listitem">
@@ -203,34 +228,42 @@
                 Each tree shows the value at t=0 branching into up and down states at t=1.
               </p>
             </div>
+            
+            <!-- Screen reader note about table view -->
+            <p id="chart-accessibility-note" class="sr-only">
+              This is a visual chart. For accessible data values, activate the Table view button.
+            </p>
 
             <!-- Chart containers -->
             <div id="charts-wrapper">
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title" id="asset-chart-title">Asset Price Evolution</h5>
+                <h5 class="binomial-chart-title" id="asset-chart-title">Underlying Asset Price Binomial Tree</h5>
                 <div class="binomial-chart-container" 
-                     role="region" 
+                     role="img" 
                      aria-labelledby="asset-chart-title"
+                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="asset-chart"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title" id="call-chart-title">Call Option Valuation</h5>
+                <h5 class="binomial-chart-title" id="call-chart-title">Call Option Binomial Tree</h5>
                 <div class="binomial-chart-container" 
-                     role="region"
+                     role="img"
                      aria-labelledby="call-chart-title"
+                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="call-chart"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
-                <h5 class="binomial-chart-title" id="put-chart-title">Put Option Valuation</h5>
+                <h5 class="binomial-chart-title" id="put-chart-title">Put Option Binomial Tree</h5>
                 <div class="binomial-chart-container" 
-                     role="region"
+                     role="img"
                      aria-labelledby="put-chart-title"
+                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="put-chart"></canvas>
                 </div>
@@ -246,7 +279,7 @@
                 <thead>
                   <tr>
                     <th scope="col">Metric</th>
-                    <th scope="col">Value</th>
+                    <th scope="col">Value (USD / %)</th>
                   </tr>
                 </thead>
                 <tbody id="table-body">
