@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binomial Option Pricing Equations | CFA Institute</title>
+  <meta name="description" content="Static equations for one-period binomial option pricing">
+
+  <!-- Lato font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+  <!-- MathJax 2.7.7 -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        displayMath: [['$$','$$'], ['\\[','\\]']],
+        processEscapes: true
+      },
+      "HTML-CSS": {
+        linebreaks: { automatic: true },
+        scale: 90
+      },
+      menuSettings: {
+        inTabOrder: false
+      }
+    });
+  </script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    [hidden] { display: none !important; }
+
+    /* ── Variables ─────────────────────────────────────────── */
+    :root {
+      --color-gray-50:  #f9fafb;
+      --color-gray-100: #f3f4f6;
+      --color-gray-200: #e5e7eb;
+      --color-gray-700: #374151;
+      --color-gray-800: #1f2937;
+    }
+
+    /* ── Base ──────────────────────────────────────────────── */
+    html { font-size: 16px; }
+
+    body {
+      font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--color-gray-50);
+      color: var(--color-gray-800);
+      line-height: 1.5;
+      font-size: 1rem;
+      padding: 0 1.5rem 1.5rem;
+    }
+
+    @media (max-width: 640px) { body { padding: 1rem; } }
+    @media (max-width: 400px) { body { padding: 0 0.75rem 1.5rem; } }
+
+    /* ── Container ─────────────────────────────────────────── */
+    .container { max-width: 90rem; margin: 0 auto; padding: 1rem 0; }
+
+    /* ── Card ──────────────────────────────────────────────── */
+    .card {
+      background: white;
+      border: 1px solid var(--color-gray-100);
+      border-radius: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+
+    @media (max-width: 768px) { .card { padding: 1rem; } }
+    @media (max-width: 400px) { .card { padding: 0.75rem; } }
+
+    /* ── Equation container ────────────────────────────────── */
+    .equation-container {
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .equation-container p {
+      font-size: 1rem;
+      color: var(--color-gray-700);
+      line-height: 1.7;
+    }
+
+    @media (max-width: 768px) { .equation-container { padding: 0.75rem; } }
+    @media (max-width: 640px) { .equation-container { padding: 0.5rem; } }
+
+    /* ── Reduced motion ────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <main>
+      <!--
+        Colour coding used throughout:
+          S_u (up-state price)     → green  #047857
+          S_d (down-state price)   → red    #b91c1c
+          S_0 (current price)      → neutral (no colour)
+          C, HR_C, c_0 (call)     → blue   #1e40af
+          P, HR_P, p_0 (put)      → purple #6d28d9
+          K, r                    → neutral (no colour)
+      -->
+      <section id="static-equations-card" class="card" aria-label="Binomial option pricing equations">
+        <div class="equation-container" style="text-align: left;">
+
+          <p style="margin-bottom: 1rem;">The value of a call option at <i>t</i> = 1 once it can be exercised is:</p>
+          <p style="margin-left: 2rem; margin-bottom: 0.5rem;">$\color{#1e40af}{C_u} = \max(\color{#047857}{S_u} - K, 0)$ in the up state</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$\color{#1e40af}{C_d} = \max(\color{#b91c1c}{S_d} - K, 0)$ in the down state</p>
+
+          <p style="margin-bottom: 1rem;">The value of a put option at <i>t</i> = 1 once it can be exercised is:</p>
+          <p style="margin-left: 2rem; margin-bottom: 0.5rem;">$\color{#6d28d9}{P_u} = \max(K - \color{#047857}{S_u}, 0)$ in the up state</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$\color{#6d28d9}{P_d} = \max(K - \color{#b91c1c}{S_d}, 0)$ in the down state</p>
+
+          <p style="margin-bottom: 1rem;">From these option values the hedge ratio for the call (<span style="color: #1e40af;">HR<sub><i>C</i></sub></span>) and the hedge ratio for the put (<span style="color: #6d28d9;">HR<sub><i>P</i></sub></span>) can be computed by combining the stock with the appropriate option so that the combination becomes riskless:</p>
+          <p style="margin-left: 2rem; margin-bottom: 1rem;">$$\color{#1e40af}{\text{HR}_C} = \frac{\color{#1e40af}{C_u} - \color{#1e40af}{C_d}}{\color{#047857}{S_u} - \color{#b91c1c}{S_d}}$$</p>
+          <p style="margin-left: 2rem; margin-bottom: 1.5rem;">$$\color{#6d28d9}{\text{HR}_P} = \frac{\color{#6d28d9}{P_u} - \color{#6d28d9}{P_d}}{\color{#047857}{S_u} - \color{#b91c1c}{S_d}}$$</p>
+
+          <p style="margin-bottom: 1rem;">This now allows us to compute the call and the put value at <i>t</i> = 0 as follows:</p>
+          <p style="margin-left: 2rem; margin-bottom: 1rem;">$$\color{#1e40af}{c_0} = S_0 \times \color{#1e40af}{\text{HR}_C} - \frac{\color{#1e40af}{\text{HR}_C} \times \color{#047857}{S_u} - \color{#1e40af}{C_u}}{1 + r}$$</p>
+          <p style="margin-left: 2rem;">$$\color{#6d28d9}{p_0} = S_0 \times \color{#6d28d9}{\text{HR}_P} - \frac{\color{#6d28d9}{\text{HR}_P} \times \color{#047857}{S_u} - \color{#6d28d9}{P_u}}{1 + r}$$</p>
+
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

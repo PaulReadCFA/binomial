@@ -7,7 +7,42 @@ import { $, listen, debounce, formatCurrency, formatPercentage } from './binomia
 Chart.register(ChartDataLabels);
 
 let assetChart, callChart, putChart;
-let currentView = 'chart'; // 'chart' or 'table'
+let currentView = 'chart';
+
+// Detect reduced-motion preference once at startup
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// System font stack for chart fonts
+const CHART_FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif";
+
+// Colour coding — consistent across all areas of this EE:
+//   up-state values  → green  (Su, Cu, Pu)
+//   down-state values → red   (Sd, Cd, Pd)
+//   current price    → neutral (S0 — distinct from up-state green)
+//   call option      → blue   (C0, Cu, Cd, HRc, c0)
+//   put option       → purple (P0, Pu, Pd, HRp, p0)
+//   K, r             → neutral
+const COLOR = {
+  up:   '#047857',  // green  — Su and up-state values
+  down: '#b91c1c',  // red    — Sd and down-state values
+  call: '#1e40af',  // blue   — call option
+  put:  '#6d28d9',  // purple — put option
+  neutral: '#374151' // S0, K, r
+};
+
+// Unicode math-italic capital letters for chart data labels.
+// These allow the variable letter to render italic while the
+// surrounding number/equals/subscript text stays upright,
+// without needing font-style: italic on the whole canvas label.
+const ITALIC = {
+  S: '\u{1D446}', // 𝑆  Mathematical Italic Capital S
+  C: '\u{1D436}', // 𝐶  Mathematical Italic Capital C
+  P: '\u{1D443}'  // 𝑃  Mathematical Italic Capital P
+};
+const SUB = {
+  '0': '\u2080',  // ₀
+  u:   '\u1D64'   // ᵤ  (no Unicode subscript d — use plain 'd')
+};
 
 function init() {
   console.log('Binomial Option Pricing Calculator initializing...');
@@ -16,32 +51,30 @@ function init() {
   subscribe(handleStateChange);
   updateCalculations();
   runSelfTests();
-  
-  // Trigger MathJax rendering for static equations
+
   if (window.MathJax && window.MathJax.Hub) {
     MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
   }
-  
+
+  listen(window, 'resize', debounce(fitDynamicEquations, 150));
+
   console.log('Binomial Calculator ready');
 }
 
 function setupViewToggle() {
   const chartBtn = $('#view-chart-btn');
   const tableBtn = $('#view-table-btn');
-  
+
   if (chartBtn && tableBtn) {
     listen(chartBtn, 'click', () => switchView('chart'));
     listen(tableBtn, 'click', () => switchView('table'));
-    
-    // Handle skip link to table button - switch to table view
+
     listen(tableBtn, 'focus', () => {
-      // If coming from skip link, switch to table view
       if (document.activeElement === tableBtn && currentView === 'chart') {
         switchView('table');
       }
     });
-    
-    // Keyboard navigation for both buttons
+
     listen(chartBtn, 'keydown', (e) => {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
@@ -49,12 +82,10 @@ function setupViewToggle() {
         tableBtn.focus();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        // Stay on chart button, ensure chart view
         switchView('chart');
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         switchView('chart');
-        // Focus on first chart
         const firstChart = $('#asset-chart');
         if (firstChart) {
           const container = firstChart.closest('.binomial-chart-container');
@@ -62,7 +93,7 @@ function setupViewToggle() {
         }
       }
     });
-    
+
     listen(tableBtn, 'keydown', (e) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -70,12 +101,10 @@ function setupViewToggle() {
         chartBtn.focus();
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        // Stay on table button, ensure table view
         switchView('table');
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         switchView('table');
-        // Focus on table
         const table = $('#binomial-table');
         if (table) table.focus();
       }
@@ -89,30 +118,17 @@ function switchView(view) {
   const tableView = $('#table-view');
   const chartBtn = $('#view-chart-btn');
   const tableBtn = $('#view-table-btn');
-  
+
   if (view === 'chart') {
     if (chartView) chartView.style.display = 'block';
     if (tableView) tableView.style.display = 'none';
-    if (chartBtn) {
-      chartBtn.classList.add('active');
-      chartBtn.setAttribute('aria-pressed', 'true');
-    }
-    if (tableBtn) {
-      tableBtn.classList.remove('active');
-      tableBtn.setAttribute('aria-pressed', 'false');
-    }
+    if (chartBtn) { chartBtn.classList.add('active'); chartBtn.setAttribute('aria-pressed', 'true'); }
+    if (tableBtn) { tableBtn.classList.remove('active'); tableBtn.setAttribute('aria-pressed', 'false'); }
   } else {
     if (chartView) chartView.style.display = 'none';
     if (tableView) tableView.style.display = 'block';
-    if (chartBtn) {
-      chartBtn.classList.remove('active');
-      chartBtn.setAttribute('aria-pressed', 'false');
-    }
-    if (tableBtn) {
-      tableBtn.classList.add('active');
-      tableBtn.setAttribute('aria-pressed', 'true');
-    }
-    // Update table when switching to it
+    if (chartBtn) { chartBtn.classList.remove('active'); chartBtn.setAttribute('aria-pressed', 'false'); }
+    if (tableBtn) { tableBtn.classList.add('active'); tableBtn.setAttribute('aria-pressed', 'true'); }
     if (state.optionCalculations) {
       renderTable(state.optionCalculations, state);
     }
@@ -127,11 +143,11 @@ function setupInputListeners() {
     { id: 'strike', field: 'strike' },
     { id: 'risk-free-rate', field: 'riskFreeRate' }
   ];
-  
+
   inputs.forEach(({ id, field }) => {
     const input = $(`#${id}`);
     if (!input) return;
-    
+
     const debouncedUpdate = debounce(() => {
       const value = parseFloat(input.value);
       const error = validateField(field, value);
@@ -141,7 +157,7 @@ function setupInputListeners() {
       updateValidationSummary(errors);
       if (!hasErrors(errors)) { updateCalculations(); }
     }, 300);
-    
+
     listen(input, 'input', debouncedUpdate);
     listen(input, 'change', debouncedUpdate);
   });
@@ -153,7 +169,7 @@ function updateCalculations() {
     setState({ optionCalculations: null });
     return;
   }
-  
+
   try {
     const calculations = calculateOptionMetrics({ s0, su, sd, strike, riskFreeRate });
     setState({ optionCalculations: calculations });
@@ -163,54 +179,70 @@ function updateCalculations() {
   }
 }
 
+// Scale down any .MathJax_Display block that is wider than its parent,
+// so equations always fit without a horizontal scrollbar.
+// Called after typesetting and on window resize.
+function fitDynamicEquations() {
+  const container = $('#dynamic-equation-container');
+  if (!container) return;
+  container.querySelectorAll('.MathJax_Display').forEach(function(el) {
+    // Reset previous scaling so we measure the natural rendered width
+    el.style.transform = '';
+    el.style.marginBottom = '';
+    const available = el.parentElement.clientWidth;
+    const natural   = el.scrollWidth;
+    if (natural > available && available > 0) {
+      const scale = available / natural;
+      el.style.transformOrigin = 'left top';
+      el.style.transform       = `scale(${scale})`;
+      // Compensate for the vertical space saved by shrinking
+      el.style.marginBottom    = `-${el.offsetHeight * (1 - scale)}px`;
+    }
+  });
+}
+
 function announceCalculationsToScreenReader(calc) {
   const announcement = $('#sr-announcement');
   if (!announcement) return;
-  
-  announcement.textContent = 
-    `Calculations updated. ` +
-    `Call option price: ${formatCurrency(calc.C0)}. ` +
-    `Put option price: ${formatCurrency(calc.P0)}. ` +
-    `Risk-neutral probability: ${formatPercentage(calc.p * 100)}.`;
+  announcement.textContent =
+    `Updated: call ${formatCurrency(calc.C0)}, put ${formatCurrency(calc.P0)}.`;
 }
 
 function handleStateChange(newState) {
   const { optionCalculations } = newState;
   if (!optionCalculations) return;
-  
+
   renderResults(optionCalculations, newState);
   renderDynamicEquation(optionCalculations, newState);
   renderCharts(optionCalculations, newState);
   if (currentView === 'table') {
     renderTable(optionCalculations, newState);
   }
-  
-  // Announce changes to screen readers
   announceCalculationsToScreenReader(optionCalculations);
 }
 
 function renderResults(calc, params) {
   const container = $('#results-content');
   if (!container) return;
-  
+
   container.innerHTML = `
     <div class="result-box call-option">
       <h5 class="result-title call-option">Call Option Price</h5>
-      <div class="result-value" style="color: #1e40af;">${formatCurrency(calc.C0)}</div>
+      <div class="result-value" style="color: ${COLOR.call};">${formatCurrency(calc.C0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at t=0
+        Fair value at <i>t</i>=0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${calc.HRc.toFixed(4)}</div>
         <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Cu)}, Down ${formatCurrency(calc.Cd)}</div>
       </div>
     </div>
-    
+
     <div class="result-box put-option">
       <h5 class="result-title put-option">Put Option Price</h5>
-      <div class="result-value" style="color: #6d28d9;">${formatCurrency(calc.P0)}</div>
+      <div class="result-value" style="color: ${COLOR.put};">${formatCurrency(calc.P0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at t=0
+        Fair value at <i>t</i>=0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${calc.HRp.toFixed(4)}</div>
@@ -220,110 +252,110 @@ function renderResults(calc, params) {
   `;
 }
 
+// Dynamic equations — full colour coding applied:
+//   S0     → neutral (no \color; S0 is distinct from the up-state)
+//   Su     → green
+//   Sd     → red
+//   c0, HRc, Cu, Cd, C0 → blue
+//   p0, HRp, Pu, Pd, P0 → purple
 function renderDynamicEquation(calc, params) {
   const container = $('#dynamic-mathml-equation');
   if (!container) return;
-  
+
   const r = params.riskFreeRate / 100;
   const onePlusR = (1 + r).toFixed(4);
-  
+  const { up, down, call: cl, put: pu } = COLOR;
+
   const content = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
-      <div style="text-align: left;">
-        <div style="font-weight: 600; margin-bottom: 0.75rem; color: #1e40af; font-size: 1rem;">Call Hedge Ratio:</div>
-        <p style="margin-left: 1rem;">
-          $$HR_C = \\frac{${calc.Cu.toFixed(2)} - ${calc.Cd.toFixed(2)}}{\\color{#047857}{${params.su.toFixed(2)}} - \\color{#b91c1c}{${params.sd.toFixed(2)}}} = \\color{#1e40af}{${calc.HRc.toFixed(4)}}$$
-        </p>
-        
-        <div style="margin-top: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; color: #1e40af; font-size: 1rem;">Call Option Price:</div>
-        <p style="margin-left: 1rem;">
-          $$c_0 = \\color{#047857}{${params.s0.toFixed(2)}} \\times ${calc.HRc.toFixed(4)} - \\frac{${calc.HRc.toFixed(4)} \\times \\color{#047857}{${params.su.toFixed(2)}} - ${calc.Cu.toFixed(2)}}{${onePlusR}}$$
-        </p>
-        <p style="margin-left: 1rem; margin-top: 0.5rem;">
-          $$= \\color{#1e40af}{${calc.C0.toFixed(2)}}$$
-        </p>
-      </div>
-      
-      <div style="text-align: left;">
-        <div style="font-weight: 600; margin-bottom: 0.75rem; color: #6d28d9; font-size: 1rem;">Put Hedge Ratio:</div>
-        <p style="margin-left: 1rem;">
-          $$HR_P = \\frac{${calc.Pu.toFixed(2)} - ${calc.Pd.toFixed(2)}}{\\color{#047857}{${params.su.toFixed(2)}} - \\color{#b91c1c}{${params.sd.toFixed(2)}}} = \\color{#6d28d9}{${calc.HRp.toFixed(4)}}$$
-        </p>
-        
-        <div style="margin-top: 1.5rem; font-weight: 600; margin-bottom: 0.75rem; color: #6d28d9; font-size: 1rem;">Put Option Price:</div>
-        <p style="margin-left: 1rem;">
-          $$p_0 = \\color{#047857}{${params.s0.toFixed(2)}} \\times ${calc.HRp.toFixed(4)} - \\frac{${calc.HRp.toFixed(4)} \\times \\color{#047857}{${params.su.toFixed(2)}} - ${calc.Pu.toFixed(2)}}{${onePlusR}}$$
-        </p>
-        <p style="margin-left: 1rem; margin-top: 0.5rem;">
-          $$= \\color{#6d28d9}{${calc.P0.toFixed(2)}}$$
-        </p>
-      </div>
+    <div style="margin-bottom: 1.5rem;">
+      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${cl};">Call Hedge Ratio:</div>
+      <p style="margin-left: 1rem;">$$\\color{${cl}}{\\text{HR}_{C}} = \\frac{\\color{${cl}}{${calc.Cu.toFixed(2)}} - \\color{${cl}}{${calc.Cd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${cl}}{${calc.HRc.toFixed(4)}}$$</p>
+    </div>
+
+    <div style="margin-bottom: 1.5rem;">
+      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${cl};">Call Option Price:</div>
+      <p style="margin-left: 1rem;">$$\\color{${cl}}{c_0} = ${params.s0.toFixed(2)} \\times \\color{${cl}}{${calc.HRc.toFixed(4)}} - \\frac{\\color{${cl}}{${calc.HRc.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${cl}}{${calc.Cu.toFixed(2)}}}{${onePlusR}} = \\color{${cl}}{${calc.C0.toFixed(2)}}$$</p>
+    </div>
+
+    <div style="margin-bottom: 1.5rem;">
+      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${pu};">Put Hedge Ratio:</div>
+      <p style="margin-left: 1rem;">$$\\color{${pu}}{\\text{HR}_{P}} = \\frac{\\color{${pu}}{${calc.Pu.toFixed(2)}} - \\color{${pu}}{${calc.Pd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${pu}}{${calc.HRp.toFixed(4)}}$$</p>
+    </div>
+
+    <div style="margin-bottom: 0.5rem;">
+      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${pu};">Put Option Price:</div>
+      <p style="margin-left: 1rem;">$$\\color{${pu}}{p_0} = ${params.s0.toFixed(2)} \\times \\color{${pu}}{${calc.HRp.toFixed(4)}} - \\frac{\\color{${pu}}{${calc.HRp.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${pu}}{${calc.Pu.toFixed(2)}}}{${onePlusR}} = \\color{${pu}}{${calc.P0.toFixed(2)}}$$</p>
     </div>
   `;
-  
+
+  container.style.visibility = 'hidden';
   container.innerHTML = content;
-  
-  // Typeset with MathJax
+
   if (window.MathJax && window.MathJax.Hub) {
     MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
+    MathJax.Hub.Queue(function() {
+      fitDynamicEquations();
+      container.style.visibility = 'visible';
+    });
   }
 }
 
+// Table — colour coding applied; S0 row uses neutral (no colour on S0 symbol)
 function renderTable(calc, params) {
   const tbody = $('#table-body');
   if (!tbody) return;
-  
+
   tbody.innerHTML = `
     <tr>
-      <td><strong>Asset Price (<span style="color: #047857;">S<sub>0</sub></span>)</strong></td>
+      <td><strong>Asset Price (<i>S</i><sub>0</sub>)</strong></td>
       <td>${params.s0.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Up-state (<span style="color: #047857;">S<sub>u</sub></span>)</strong></td>
+      <td><strong>Up-State Price (<span style="color: ${COLOR.up};"><i>S</i><sub>u</sub></span>)</strong></td>
       <td>${params.su.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Down-state (<span style="color: #b91c1c;">S<sub>d</sub></span>)</strong></td>
+      <td><strong>Down-State Price (<span style="color: ${COLOR.down};"><i>S</i><sub>d</sub></span>)</strong></td>
       <td>${params.sd.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Strike Price (K)</strong></td>
+      <td><strong>Strike Price (<i>K</i>)</strong></td>
       <td>${params.strike.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Risk-free Rate (r)</strong></td>
+      <td><strong>Risk-Free Rate (<i>r</i>)</strong></td>
       <td>${params.riskFreeRate.toFixed(2)}%</td>
     </tr>
     <tr style="background-color: #eff6ff;">
-      <td><strong>Call Option Price (<span style="color: #1e40af;">C<sub>0</sub></span>)</strong></td>
-      <td><strong style="color: #1e40af;">${calc.C0.toFixed(2)}</strong></td>
+      <td><strong>Call Option Price (<span style="color: ${COLOR.call};"><i>C</i><sub>0</sub></span>)</strong></td>
+      <td><strong style="color: ${COLOR.call};">${calc.C0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Hedge Ratio (HR<sub>C</sub>)</td>
+      <td style="padding-left: 2rem;">Call Hedge Ratio (HR<sub><i>C</i></sub>)</td>
       <td>${calc.HRc.toFixed(4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Up Payoff (<span style="color: #1e40af;">C<sub>u</sub></span>)</td>
+      <td style="padding-left: 2rem;">Call up payoff (<span style="color: ${COLOR.call};"><i>C</i><sub>u</sub></span>)</td>
       <td>${calc.Cu.toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Down Payoff (<span style="color: #1e40af;">C<sub>d</sub></span>)</td>
+      <td style="padding-left: 2rem;">Call down payoff (<span style="color: ${COLOR.call};"><i>C</i><sub>d</sub></span>)</td>
       <td>${calc.Cd.toFixed(2)}</td>
     </tr>
     <tr style="background-color: #faf5ff;">
-      <td><strong>Put Option Price (<span style="color: #6d28d9;">P<sub>0</sub></span>)</strong></td>
-      <td><strong style="color: #6d28d9;">${calc.P0.toFixed(2)}</strong></td>
+      <td><strong>Put Option Price (<span style="color: ${COLOR.put};"><i>P</i><sub>0</sub></span>)</strong></td>
+      <td><strong style="color: ${COLOR.put};">${calc.P0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Hedge Ratio (HR<sub>P</sub>)</td>
+      <td style="padding-left: 2rem;">Put Hedge Ratio (HR<sub><i>P</i></sub>)</td>
       <td>${calc.HRp.toFixed(4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Up Payoff (<span style="color: #6d28d9;">P<sub>u</sub></span>)</td>
+      <td style="padding-left: 2rem;">Put up payoff (<span style="color: ${COLOR.put};"><i>P</i><sub>u</sub></span>)</td>
       <td>${calc.Pu.toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put Down Payoff (<span style="color: #6d28d9;">P<sub>d</sub></span>)</td>
+      <td style="padding-left: 2rem;">Put down payoff (<span style="color: ${COLOR.put};"><i>P</i><sub>d</sub></span>)</td>
       <td>${calc.Pd.toFixed(2)}</td>
     </tr>
   `;
@@ -335,177 +367,185 @@ function renderCharts(calc, params) {
   renderPutChart(calc, params);
 }
 
+// Asset price chart.
+// Label colours: S0 → neutral, Su → green, Sd → red.
+// The t=0 point is shared by both datasets; suppress the duplicate label
+// from the second dataset (datasetIndex 1) by returning null.
 function renderAssetChart(calc, params) {
   const canvas = $('#asset-chart');
   if (!canvas) return;
-  
+
   if (assetChart) assetChart.destroy();
-  
-  const ctx = canvas.getContext('2d');
-  
-  assetChart = new Chart(ctx, {
+
+  const assetLabelColor = function(context) {
+    if (context.dataIndex === 0) return COLOR.neutral;
+    return context.dataset.borderColor; // green for up, red for down
+  };
+
+  assetChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
-      labels: ['t = 0', 't = 1'],
+      labels: ['\u{1D461} = 0', '\u{1D461} = 1'],
       datasets: [
         {
-          label: 'Up Path',
+          label: 'Up path',
           data: [params.s0, params.su],
-          borderColor: '#047857',
-          backgroundColor: '#047857',
+          borderColor: COLOR.up,
+          backgroundColor: COLOR.up,
           borderWidth: 2,
           pointRadius: 6,
-          pointHoverRadius: 8,
-          datalabels: {
-            labels: {
-              title: null
-            }
-          }
+          pointHoverRadius: 8
         },
         {
-          label: 'Down Path',
+          label: 'Down path',
           data: [params.s0, params.sd],
-          borderColor: '#b91c1c',
-          backgroundColor: '#b91c1c',
+          borderColor: COLOR.down,
+          backgroundColor: COLOR.down,
           borderWidth: 2,
           pointRadius: 6,
-          pointHoverRadius: 8,
-          datalabels: {
-            labels: {
-              title: null
-            }
-          }
+          pointHoverRadius: 8
         }
       ]
     },
-    options: getChartOptions('Asset price (USD)', 'USD ', false, function(value, context) {
-      const dataIndex = context.dataIndex;
-      const datasetIndex = context.datasetIndex;
-      
-      if (dataIndex === 0) {
-        return `S_0 = ${value.toFixed(2)}`;
-      } else {
-        if (datasetIndex === 0) {
-          return `S_u = ${value.toFixed(2)}`;
-        } else {
-          return `S_d = ${value.toFixed(2)}`;
+    options: getChartOptions(
+      'Asset price (USD)', 'USD', false,
+      function(value, context) {
+        const { dataIndex, datasetIndex } = context;
+        if (dataIndex === 0) {
+          if (datasetIndex === 1) return null; // suppress duplicate S0 label
+          return `${ITALIC.S}${SUB[0]} = ${value.toFixed(2)}`;
         }
-      }
-    }, false)
+        return datasetIndex === 0
+          ? `${ITALIC.S}${SUB.u} = ${value.toFixed(2)}`  // Su
+          : `${ITALIC.S}d = ${value.toFixed(2)}`;         // Sd (no Unicode subscript d)
+      },
+      false,
+      assetLabelColor
+    )
   });
 }
 
+// Call option chart.
+// All labels → call blue, regardless of up/down direction.
 function renderCallChart(calc, params) {
   const canvas = $('#call-chart');
   if (!canvas) return;
-  
+
   if (callChart) callChart.destroy();
-  
-  const ctx = canvas.getContext('2d');
-  
-  callChart = new Chart(ctx, {
+
+  callChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
-      labels: ['t = 0', 't = 1'],
+      labels: ['\u{1D461} = 0', '\u{1D461} = 1'],
       datasets: [
         {
-          label: 'Up Path',
+          label: 'Up path',
           data: [calc.C0, calc.Cu],
-          borderColor: '#047857',
-          backgroundColor: '#047857',
+          borderColor: COLOR.up,
+          backgroundColor: COLOR.up,
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
         },
         {
-          label: 'Down Path',
+          label: 'Down path',
           data: [calc.C0, calc.Cd],
-          borderColor: '#b91c1c',
-          backgroundColor: '#b91c1c',
+          borderColor: COLOR.down,
+          backgroundColor: COLOR.down,
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
         }
       ]
     },
-    options: getChartOptions('Call option value (USD)', 'USD ', false, function(value, context) {
-      const dataIndex = context.dataIndex;
-      const datasetIndex = context.datasetIndex;
-      
-      if (dataIndex === 0) {
-        return `C_0 = ${value.toFixed(2)}`;
-      } else {
-        if (datasetIndex === 0) {
-          return `C_u = ${value.toFixed(2)}`;
-        } else {
-          return `C_d = ${value.toFixed(2)}`;
+    options: getChartOptions(
+      'Call option value (USD)', 'USD', false,
+      function(value, context) {
+        const { dataIndex, datasetIndex } = context;
+        if (dataIndex === 0) {
+          if (datasetIndex === 1) return null; // suppress duplicate C0 label
+          return `${ITALIC.C}${SUB[0]} = ${value.toFixed(2)}`;
         }
-      }
-    }, false)
+        return datasetIndex === 0
+          ? `${ITALIC.C}${SUB.u} = ${value.toFixed(2)}`  // Cu
+          : `${ITALIC.C}d = ${value.toFixed(2)}`;         // Cd
+      },
+      false,
+      () => COLOR.call // all call labels are blue
+    )
   });
 }
 
+// Put option chart.
+// Y-axis inverted so the down-state payoff (higher value) sits visually lower,
+// matching the binomial tree convention in the reading material (p. 173):
+// the green up-path line goes visually upward to Pu=0,
+// and the red down-path line goes visually downward to Pd=18.
+// All labels → put purple.
 function renderPutChart(calc, params) {
   const canvas = $('#put-chart');
   if (!canvas) return;
-  
+
   if (putChart) putChart.destroy();
-  
-  const ctx = canvas.getContext('2d');
-  
-  putChart = new Chart(ctx, {
+
+  putChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
-      labels: ['t = 0', 't = 1'],
+      labels: ['\u{1D461} = 0', '\u{1D461} = 1'],
       datasets: [
         {
-          label: 'Up Path',
+          label: 'Up path',
           data: [calc.P0, calc.Pu],
-          borderColor: '#047857',
-          backgroundColor: '#047857',
+          borderColor: COLOR.up,
+          backgroundColor: COLOR.up,
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
         },
         {
-          label: 'Down Path',
+          label: 'Down path',
           data: [calc.P0, calc.Pd],
-          borderColor: '#b91c1c',
-          backgroundColor: '#b91c1c',
+          borderColor: COLOR.down,
+          backgroundColor: COLOR.down,
           borderWidth: 2,
           pointRadius: 6,
           pointHoverRadius: 8
         }
       ]
     },
-    options: getChartOptions('Put option value (USD)', 'USD ', false, function(value, context) {
-      const dataIndex = context.dataIndex;
-      const datasetIndex = context.datasetIndex;
-      
-      if (dataIndex === 0) {
-        return `P_0 = ${value.toFixed(2)}`;
-      } else {
-        if (datasetIndex === 0) {
-          return `P_u = ${value.toFixed(2)}`;
-        } else {
-          return `P_d = ${value.toFixed(2)}`;
+    options: getChartOptions(
+      'Put option value (USD)', 'USD', false,
+      function(value, context) {
+        const { dataIndex, datasetIndex } = context;
+        if (dataIndex === 0) {
+          if (datasetIndex === 1) return null; // suppress duplicate P0 label
+          return `${ITALIC.P}${SUB[0]} = ${value.toFixed(2)}`;
         }
-      }
-    }, false)  // Keep standard y-axis (not inverted)
+        return datasetIndex === 0
+          ? `${ITALIC.P}${SUB.u} = ${value.toFixed(2)}`  // Pu
+          : `${ITALIC.P}d = ${value.toFixed(2)}`;         // Pd
+      },
+      true,            // invertYAxis — down payoff appears visually lower
+      () => COLOR.put  // all put labels are purple
+    )
   });
 }
 
-function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelFormatter = null, invertYAxis = false) {
-  const options = {
+// Shared chart options builder.
+// labelColorFn: optional function(context) → colour string for datalabel text + pill border.
+//               If null, defaults to neutral for t=0, dataset borderColor for t=1.
+function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelFormatter = null, invertYAxis = false, labelColorFn = null) {
+  const defaultLabelColor = function(context) {
+    return context.dataIndex === 0 ? COLOR.neutral : context.dataset.borderColor;
+  };
+  const resolvedLabelColor = labelColorFn || defaultLabelColor;
+
+  return {
     responsive: true,
     maintainAspectRatio: false,
+    animation: prefersReducedMotion ? { duration: 0 } : undefined,
     layout: {
-      padding: {
-        top: 40,
-        right: 120,
-        bottom: 25,
-        left: 100
-      }
+      padding: { top: 40, right: 120, bottom: 25, left: 100 }
     },
     plugins: {
       legend: { display: false },
@@ -516,19 +556,20 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
       },
       datalabels: {
         display: true,
-        color: function(context) {
-          return context.dataset.borderColor;
-        },
+        // Colour the datalabel text and pill border using the resolved colour function.
+        // For asset chart: neutral at t=0, green/red at t=1.
+        // For call/put charts: call blue / put purple throughout.
+        color: resolvedLabelColor,
         font: {
           weight: 'bold',
-          size: 15
+          size: 15,
+          // No style: 'italic' here — italic is conveyed by the Unicode
+          // math-italic letter in the label string itself (e.g. 𝑆, 𝐶, 𝑃),
+          // keeping the number/equals/subscript portions upright.
+          family: CHART_FONT_FAMILY
         },
-        backgroundColor: function(context) {
-          return 'rgba(255, 255, 255, 0.9)';
-        },
-        borderColor: function(context) {
-          return context.dataset.borderColor;
-        },
+        backgroundColor: () => 'rgba(255, 255, 255, 0.9)',
+        borderColor: resolvedLabelColor,
         borderWidth: 2,
         borderRadius: 4,
         padding: 6,
@@ -537,19 +578,8 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
         },
         align: function(context) {
           const index = context.dataIndex;
-          
-          // For t=0 (first point)
-          if (index === 0) {
-            // Position to the left of the point
-            return 'left';
-          }
-          
-          // For t=1 (last point)
-          if (index === context.chart.data.labels.length - 1) {
-            // Position to the right of the point
-            return 'right';
-          }
-          
+          if (index === 0) return 'left';
+          if (index === context.chart.data.labels.length - 1) return 'right';
           return 'center';
         },
         offset: 15,
@@ -560,37 +590,37 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
       x: {
         ticks: {
           color: '#374151',
-          font: { weight: 500 }
+          // No style: 'italic' — the Unicode italic t (\u{1D461}) in the
+          // label string handles the italic appearance without italicising
+          // the numerals, equals sign, and spaces.
+          font: {
+            size: 13,
+            weight: '500',
+            family: CHART_FONT_FAMILY
+          }
         },
-        grid: {
-          color: '#e5e7eb',
-          offset: true
-        },
+        grid: { color: '#e5e7eb', offset: true },
         offset: true
       },
       y: {
         display: !hideYAxis,
         reverse: invertYAxis,
-        title: { 
-          display: !hideYAxis, 
+        title: {
+          display: !hideYAxis,
           text: yLabel,
           color: '#374151',
-          font: { weight: 600 }
+          font: { size: 13, weight: '600', family: CHART_FONT_FAMILY }
         },
-        ticks: { 
+        ticks: {
           display: !hideYAxis,
           callback: (v) => v.toFixed(2),
           color: '#374151',
-          font: { weight: 500 }
+          font: { size: 13, weight: '500', family: CHART_FONT_FAMILY }
         },
-        grid: {
-          color: '#e5e7eb'
-        }
+        grid: { color: '#e5e7eb' }
       }
     }
   };
-  
-  return options;
 }
 
 function runSelfTests() {
@@ -602,22 +632,16 @@ function runSelfTests() {
       expected: { callApprox: 4.19, putApprox: 11.43 }
     }
   ];
-  
+
   tests.forEach(test => {
     try {
       const result = calculateOptionMetrics(test.inputs);
       let passed = true;
-      if (test.expected.callApprox) {
-        const diff = Math.abs(result.C0 - test.expected.callApprox);
-        if (diff > 0.1) passed = false;
-      }
-      if (test.expected.putApprox) {
-        const diff = Math.abs(result.P0 - test.expected.putApprox);
-        if (diff > 0.1) passed = false;
-      }
-      console.log(`${passed ? '✓' : '✗'} ${test.name} ${passed ? 'passed' : 'failed'}`);
+      if (test.expected.callApprox && Math.abs(result.C0 - test.expected.callApprox) > 0.1) passed = false;
+      if (test.expected.putApprox  && Math.abs(result.P0 - test.expected.putApprox)  > 0.1) passed = false;
+      console.log(`${passed ? '\u2713' : '\u2717'} ${test.name} ${passed ? 'passed' : 'failed'}`);
     } catch (error) {
-      console.error(`✗ ${test.name} threw error:`, error);
+      console.error(`\u2717 ${test.name} threw error:`, error);
     }
   });
   console.log('Self-tests complete');

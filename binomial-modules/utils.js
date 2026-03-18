@@ -38,7 +38,7 @@ export function debounce(fn, wait = 300) {
 }
 
 /**
- * Format number as currency
+ * Format number as currency (no space between USD and value)
  * @param {number} value - Numeric value
  * @param {boolean} signed - Include sign for negative values
  * @returns {string} Formatted currency string
@@ -49,11 +49,11 @@ export function formatCurrency(value, signed = false) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
-  
+
   if (value < 0) {
-    return signed ? `-USD ${formatted}` : `(USD ${formatted})`;
+    return signed ? `-USD${formatted}` : `(USD${formatted})`;
   }
-  return `USD ${formatted}`;
+  return `USD${formatted}`;
 }
 
 /**
@@ -76,7 +76,7 @@ export function formatPercentage(value, decimals = 2) {
  */
 export function createElement(tag, attrs = {}, content = '') {
   const element = document.createElement(tag);
-  
+
   Object.entries(attrs).forEach(([key, value]) => {
     if (key === 'className') {
       element.className = value;
@@ -84,11 +84,11 @@ export function createElement(tag, attrs = {}, content = '') {
       element.setAttribute(key, value);
     }
   });
-  
+
   if (content) {
     element.textContent = content;
   }
-  
+
   return element;
 }
 
@@ -108,7 +108,7 @@ export function setHTML(element, html) {
  */
 export function focusElement(element, delay = 0) {
   if (!element) return;
-  
+
   setTimeout(() => {
     element.focus();
   }, delay);
