@@ -268,22 +268,22 @@ function renderDynamicEquation(calc, params) {
 
   const content = `
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${cl};">Call Hedge Ratio:</div>
+      <div style="font-weight: 600; margin-bottom: 0.5rem;">Call Hedge Ratio:</div>
       <p style="margin-left: 1rem;">$$\\color{${cl}}{\\text{HR}_{C}} = \\frac{\\color{${cl}}{${calc.Cu.toFixed(2)}} - \\color{${cl}}{${calc.Cd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${cl}}{${calc.HRc.toFixed(4)}}$$</p>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${cl};">Call Option Price:</div>
+      <div style="font-weight: 600; margin-bottom: 0.5rem;">Call Option Price:</div>
       <p style="margin-left: 1rem;">$$\\color{${cl}}{c_0} = ${params.s0.toFixed(2)} \\times \\color{${cl}}{${calc.HRc.toFixed(4)}} - \\frac{\\color{${cl}}{${calc.HRc.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${cl}}{${calc.Cu.toFixed(2)}}}{${onePlusR}} = \\color{${cl}}{${calc.C0.toFixed(2)}}$$</p>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${pu};">Put Hedge Ratio:</div>
+      <div style="font-weight: 600; margin-bottom: 0.5rem;">Put Hedge Ratio:</div>
       <p style="margin-left: 1rem;">$$\\color{${pu}}{\\text{HR}_{P}} = \\frac{\\color{${pu}}{${calc.Pu.toFixed(2)}} - \\color{${pu}}{${calc.Pd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${pu}}{${calc.HRp.toFixed(4)}}$$</p>
     </div>
 
     <div style="margin-bottom: 0.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem; color: ${pu};">Put Option Price:</div>
+      <div style="font-weight: 600; margin-bottom: 0.5rem;">Put Option Price:</div>
       <p style="margin-left: 1rem;">$$\\color{${pu}}{p_0} = ${params.s0.toFixed(2)} \\times \\color{${pu}}{${calc.HRp.toFixed(4)}} - \\frac{\\color{${pu}}{${calc.HRp.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${pu}}{${calc.Pu.toFixed(2)}}}{${onePlusR}} = \\color{${pu}}{${calc.P0.toFixed(2)}}$$</p>
     </div>
   `;
@@ -296,6 +296,18 @@ function renderDynamicEquation(calc, params) {
     MathJax.Hub.Queue(function() {
       fitDynamicEquations();
       container.style.visibility = 'visible';
+      // Update the section's aria-label so SR users hear the results
+      // immediately when they tab to the section — no input change needed.
+      const section = $('#equation-card');
+      if (section) {
+        section.setAttribute('aria-label',
+          `Binomial Option Pricing Equations. ` +
+          `Call hedge ratio: ${calc.HRc.toFixed(4)}. ` +
+          `Call option price: ${formatCurrency(calc.C0)}. ` +
+          `Put hedge ratio: ${calc.HRp.toFixed(4)}. ` +
+          `Put option price: ${formatCurrency(calc.P0)}.`
+        );
+      }
     });
   }
 }

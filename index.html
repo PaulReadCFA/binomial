@@ -180,7 +180,7 @@
       </section>
 
       <!-- Card 1: Dynamic Equations -->
-      <section id="equation-card" class="card">
+      <section id="equation-card" class="card" role="region" tabindex="0">
         <h4 class="card-title">Binomial Option Pricing Equations</h4>
 
         <div class="equation-container" role="region" aria-label="Binomial pricing calculations with current inputs" id="dynamic-equation-container">
@@ -227,7 +227,7 @@
               </p>
             </div>
 
-            <p id="chart-accessibility-note" class="sr-only">
+            <p id="chart-accessibility-note" class="sr-only" hidden>
               This is a visual chart. Switch to Table view for accessible data values.
             </p>
 
@@ -240,7 +240,6 @@
                 <div class="binomial-chart-container"
                      role="img"
                      aria-labelledby="asset-chart-title"
-                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="asset-chart"></canvas>
                 </div>
@@ -251,7 +250,6 @@
                 <div class="binomial-chart-container"
                      role="img"
                      aria-labelledby="call-chart-title"
-                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="call-chart"></canvas>
                 </div>
@@ -262,7 +260,6 @@
                 <div class="binomial-chart-container"
                      role="img"
                      aria-labelledby="put-chart-title"
-                     aria-describedby="chart-accessibility-note"
                      tabindex="-1">
                   <canvas id="put-chart"></canvas>
                 </div>
