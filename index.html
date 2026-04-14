@@ -77,7 +77,7 @@
       <section class="card" id="calculator" tabindex="-1">
         <h4 class="card-title">Binomial Option Pricing Calculator</h4>
         <div class="card-content">
-          <p style="margin-bottom: 1.5rem; color: #374151;">
+          <p class="equation-intro">
             Enter your asset prices, strike price, and risk-free rate below. The option prices and visualizations will update automatically as you change the values.
           </p>
 
@@ -85,6 +85,11 @@
             <p class="sr-only" id="inputHelp">
               Enter asset prices, strike price, and risk-free rate to calculate option prices.
             </p>
+
+            <div id="validation-summary" class="validation-summary" role="alert" style="display: none;">
+              <div class="validation-title">Please correct the following:</div>
+              <ul id="validation-list"></ul>
+            </div>
 
             <div class="input-group-inline">
 
@@ -169,12 +174,6 @@
               </div>
 
             </div>
-
-            <!-- Validation summary -->
-            <div id="validation-summary" class="validation-summary" role="alert" style="display: none;">
-              <div class="validation-title">Please correct the following:</div>
-              <ul id="validation-list"></ul>
-            </div>
           </div>
         </div>
       </section>
@@ -184,6 +183,7 @@
         <h4 class="card-title">Binomial Option Pricing Equations</h4>
 
         <div class="equation-container" role="region" aria-label="Binomial pricing calculations with current inputs" id="dynamic-equation-container">
+          <p class="equation-intro">Using your values, the equations become:</p>
           <div id="dynamic-mathml-equation">
             <!-- Populated by JavaScript -->
           </div>
@@ -300,6 +300,8 @@
       </section>
 
     </main>
+
+    <p class="sr-only" id="view-announcement" aria-live="polite" aria-atomic="true"></p>
   </div>
 
   <!-- JavaScript Modules -->

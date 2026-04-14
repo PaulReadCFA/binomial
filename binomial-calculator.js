@@ -1,7 +1,17 @@
 import { state, setState, subscribe } from './binomial-modules/state.js';
 import { calculateOptionMetrics } from './binomial-modules/calculations.js';
 import { validateField, validateAll, updateFieldError, updateValidationSummary, hasErrors } from './binomial-modules/validation.js';
-import { $, listen, debounce, formatCurrency, formatPercentage } from './binomial-modules/utils.js';
+import {
+  $,
+  listen,
+  debounce,
+  formatCurrency,
+  formatPercentage,
+  formatWithUnicodeMinus,
+  clampNumericInputLength,
+  NUMERIC_INPUT_MAX_CHARS,
+  announceToScreenReader
+} from './binomial-modules/utils.js';
 
 // Register Chart.js datalabels plugin
 Chart.register(ChartDataLabels);
@@ -40,9 +50,45 @@ const ITALIC = {
   P: '\u{1D443}'  // 𝑃  Mathematical Italic Capital P
 };
 const SUB = {
-  '0': '\u2080',  // ₀
-  u:   '\u1D64'   // ᵤ  (no Unicode subscript d — use plain 'd')
+  '0': '\u2080' // ₀ — t = 0 labels (𝑆₀, 𝐶₀, 𝑃₀); t = 1 uses “Up path” / “Down path” (matches legend & line colours)
 };
+
+/** Unicode minus (U+2212) for negative values in on-chart labels */
+function formatChartValue(value, decimals = 2) {
+  const s = Number(value).toFixed(decimals);
+  return s.startsWith('-') ? `\u2212${s.slice(1)}` : s;
+}
+
+/** Table-only below this width (higher than 600px EEs so t=0 datalabels don’t crowd the y-axis on mid-width screens) */
+const NARROW_BREAKPOINT = 768;
+
+function isNarrow() {
+  return window.innerWidth < NARROW_BREAKPOINT;
+}
+
+function applyViewportMode() {
+  const chartBtn = $('#view-chart-btn');
+  const tableBtn = $('#view-table-btn');
+  if (!chartBtn || !tableBtn) return;
+
+  if (isNarrow()) {
+    chartBtn.disabled = true;
+    chartBtn.setAttribute('aria-disabled', 'true');
+    chartBtn.title = 'Chart not available at this screen width — use the Table view';
+    switchView('table');
+  } else {
+    chartBtn.disabled = false;
+    chartBtn.removeAttribute('aria-disabled');
+    chartBtn.title = '';
+    tableBtn.disabled = false;
+    tableBtn.removeAttribute('aria-disabled');
+    tableBtn.title = '';
+    const chartViewEl = $('#chart-view');
+    if (state.optionCalculations && currentView === 'chart' && chartViewEl && chartViewEl.style.display !== 'none') {
+      renderCharts(state.optionCalculations, state);
+    }
+  }
+}
 
 function init() {
   console.log('Binomial Option Pricing Calculator initializing...');
@@ -50,6 +96,7 @@ function init() {
   setupViewToggle();
   subscribe(handleStateChange);
   updateCalculations();
+  applyViewportMode();
   runSelfTests();
 
   if (window.MathJax && window.MathJax.Hub) {
@@ -57,6 +104,7 @@ function init() {
   }
 
   listen(window, 'resize', debounce(fitDynamicEquations, 150));
+  listen(window, 'resize', debounce(applyViewportMode, 200));
 
   console.log('Binomial Calculator ready');
 }
@@ -66,8 +114,16 @@ function setupViewToggle() {
   const tableBtn = $('#view-table-btn');
 
   if (chartBtn && tableBtn) {
-    listen(chartBtn, 'click', () => switchView('chart'));
-    listen(tableBtn, 'click', () => switchView('table'));
+    listen(chartBtn, 'click', () => {
+      if (!isNarrow()) {
+        switchView('chart');
+        chartBtn.focus();
+      }
+    });
+    listen(tableBtn, 'click', () => {
+      switchView('table');
+      tableBtn.focus();
+    });
 
     listen(tableBtn, 'focus', () => {
       if (document.activeElement === tableBtn && currentView === 'chart') {
@@ -82,9 +138,10 @@ function setupViewToggle() {
         tableBtn.focus();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        switchView('chart');
+        if (!isNarrow()) switchView('chart');
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (isNarrow()) return;
         switchView('chart');
         const firstChart = $('#asset-chart');
         if (firstChart) {
@@ -97,8 +154,10 @@ function setupViewToggle() {
     listen(tableBtn, 'keydown', (e) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        switchView('chart');
-        chartBtn.focus();
+        if (!isNarrow()) {
+          switchView('chart');
+          chartBtn.focus();
+        }
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         switchView('table');
@@ -113,6 +172,9 @@ function setupViewToggle() {
 }
 
 function switchView(view) {
+  if (view === 'chart' && isNarrow()) return;
+
+  const previousView = currentView;
   currentView = view;
   const chartView = $('#chart-view');
   const tableView = $('#table-view');
@@ -124,6 +186,7 @@ function switchView(view) {
     if (tableView) tableView.style.display = 'none';
     if (chartBtn) { chartBtn.classList.add('active'); chartBtn.setAttribute('aria-pressed', 'true'); }
     if (tableBtn) { tableBtn.classList.remove('active'); tableBtn.setAttribute('aria-pressed', 'false'); }
+    if (previousView !== 'chart') announceToScreenReader('Chart view active');
   } else {
     if (chartView) chartView.style.display = 'none';
     if (tableView) tableView.style.display = 'block';
@@ -132,6 +195,7 @@ function switchView(view) {
     if (state.optionCalculations) {
       renderTable(state.optionCalculations, state);
     }
+    if (previousView !== 'table') announceToScreenReader('Table view active');
   }
 }
 
@@ -158,8 +222,12 @@ function setupInputListeners() {
       if (!hasErrors(errors)) { updateCalculations(); }
     }, 300);
 
-    listen(input, 'input', debouncedUpdate);
-    listen(input, 'change', debouncedUpdate);
+    const onInput = () => {
+      clampNumericInputLength(input, NUMERIC_INPUT_MAX_CHARS);
+      debouncedUpdate();
+    };
+    listen(input, 'input', onInput);
+    listen(input, 'change', onInput);
   });
 }
 
@@ -214,7 +282,9 @@ function handleStateChange(newState) {
 
   renderResults(optionCalculations, newState);
   renderDynamicEquation(optionCalculations, newState);
-  renderCharts(optionCalculations, newState);
+  if (!isNarrow()) {
+    renderCharts(optionCalculations, newState);
+  }
   if (currentView === 'table') {
     renderTable(optionCalculations, newState);
   }
@@ -230,10 +300,10 @@ function renderResults(calc, params) {
       <h5 class="result-title call-option">Call Option Price</h5>
       <div class="result-value" style="color: ${COLOR.call};">${formatCurrency(calc.C0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at <i>t</i>=0
+        Fair value at <i>t</i> = 0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
-        <div>Hedge Ratio: ${calc.HRc.toFixed(4)}</div>
+        <div>Hedge Ratio: ${formatWithUnicodeMinus(calc.HRc, 4)}</div>
         <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Cu)}, Down ${formatCurrency(calc.Cd)}</div>
       </div>
     </div>
@@ -242,10 +312,10 @@ function renderResults(calc, params) {
       <h5 class="result-title put-option">Put Option Price</h5>
       <div class="result-value" style="color: ${COLOR.put};">${formatCurrency(calc.P0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at <i>t</i>=0
+        Fair value at <i>t</i> = 0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
-        <div>Hedge Ratio: ${calc.HRp.toFixed(4)}</div>
+        <div>Hedge Ratio: ${formatWithUnicodeMinus(calc.HRp, 4)}</div>
         <div style="margin-top: 0.25rem;">Payoffs: Up ${formatCurrency(calc.Pu)}, Down ${formatCurrency(calc.Pd)}</div>
       </div>
     </div>
@@ -344,7 +414,7 @@ function renderTable(calc, params) {
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Call Hedge Ratio (HR<sub><i>C</i></sub>)</td>
-      <td>${calc.HRc.toFixed(4)}</td>
+      <td>${formatWithUnicodeMinus(calc.HRc, 4)}</td>
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Call up payoff (<span style="color: ${COLOR.call};"><i>C</i><sub>u</sub></span>)</td>
@@ -360,7 +430,7 @@ function renderTable(calc, params) {
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Put Hedge Ratio (HR<sub><i>P</i></sub>)</td>
-      <td>${calc.HRp.toFixed(4)}</td>
+      <td>${formatWithUnicodeMinus(calc.HRp, 4)}</td>
     </tr>
     <tr>
       <td style="padding-left: 2rem;">Put up payoff (<span style="color: ${COLOR.put};"><i>P</i><sub>u</sub></span>)</td>
@@ -425,14 +495,15 @@ function renderAssetChart(calc, params) {
         const { dataIndex, datasetIndex } = context;
         if (dataIndex === 0) {
           if (datasetIndex === 1) return null; // suppress duplicate S0 label
-          return `${ITALIC.S}${SUB[0]} = ${value.toFixed(2)}`;
+          return `${ITALIC.S}${SUB[0]} = ${formatChartValue(value)}`;
         }
         return datasetIndex === 0
-          ? `${ITALIC.S}${SUB.u} = ${value.toFixed(2)}`  // Su
-          : `${ITALIC.S}d = ${value.toFixed(2)}`;         // Sd (no Unicode subscript d)
+          ? `Up path = ${formatChartValue(value)}`
+          : `Down path = ${formatChartValue(value)}`;
       },
       false,
-      assetLabelColor
+      assetLabelColor,
+      Math.abs(params.su - params.sd) < 1e-6
     )
   });
 }
@@ -476,14 +547,15 @@ function renderCallChart(calc, params) {
         const { dataIndex, datasetIndex } = context;
         if (dataIndex === 0) {
           if (datasetIndex === 1) return null; // suppress duplicate C0 label
-          return `${ITALIC.C}${SUB[0]} = ${value.toFixed(2)}`;
+          return `${ITALIC.C}${SUB[0]} = ${formatChartValue(value)}`;
         }
         return datasetIndex === 0
-          ? `${ITALIC.C}${SUB.u} = ${value.toFixed(2)}`  // Cu
-          : `${ITALIC.C}d = ${value.toFixed(2)}`;         // Cd
+          ? `Up path = ${formatChartValue(value)}`
+          : `Down path = ${formatChartValue(value)}`;
       },
       false,
-      () => COLOR.call // all call labels are blue
+      (ctx) => (ctx.dataIndex === 0 ? COLOR.call : (ctx.datasetIndex === 0 ? COLOR.up : COLOR.down)),
+      Math.abs(calc.Cu - calc.Cd) < 1e-6
     )
   });
 }
@@ -531,14 +603,15 @@ function renderPutChart(calc, params) {
         const { dataIndex, datasetIndex } = context;
         if (dataIndex === 0) {
           if (datasetIndex === 1) return null; // suppress duplicate P0 label
-          return `${ITALIC.P}${SUB[0]} = ${value.toFixed(2)}`;
+          return `${ITALIC.P}${SUB[0]} = ${formatChartValue(value)}`;
         }
         return datasetIndex === 0
-          ? `${ITALIC.P}${SUB.u} = ${value.toFixed(2)}`  // Pu
-          : `${ITALIC.P}d = ${value.toFixed(2)}`;         // Pd
+          ? `Up path = ${formatChartValue(value)}`
+          : `Down path = ${formatChartValue(value)}`;
       },
       true,            // invertYAxis — down payoff appears visually lower
-      () => COLOR.put  // all put labels are purple
+      (ctx) => (ctx.dataIndex === 0 ? COLOR.put : (ctx.datasetIndex === 0 ? COLOR.up : COLOR.down)),
+      Math.abs(calc.Pu - calc.Pd) < 1e-6
     )
   });
 }
@@ -546,7 +619,8 @@ function renderPutChart(calc, params) {
 // Shared chart options builder.
 // labelColorFn: optional function(context) → colour string for datalabel text + pill border.
 //               If null, defaults to neutral for t=0, dataset borderColor for t=1.
-function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelFormatter = null, invertYAxis = false, labelColorFn = null) {
+// staggerEndLabels: when true, separate overlapping t=1 labels (same value on both paths).
+function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelFormatter = null, invertYAxis = false, labelColorFn = null, staggerEndLabels = false) {
   const defaultLabelColor = function(context) {
     return context.dataIndex === 0 ? COLOR.neutral : context.dataset.borderColor;
   };
@@ -557,7 +631,7 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
     maintainAspectRatio: false,
     animation: prefersReducedMotion ? { duration: 0 } : undefined,
     layout: {
-      padding: { top: 40, right: 120, bottom: 25, left: 100 }
+      padding: { top: 44, right: 100, bottom: 28, left: 88 }
     },
     plugins: {
       legend: { display: false },
@@ -569,12 +643,11 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
       datalabels: {
         display: true,
         // Colour the datalabel text and pill border using the resolved colour function.
-        // For asset chart: neutral at t=0, green/red at t=1.
-        // For call/put charts: call blue / put purple throughout.
+        // Asset: neutral at t=0, green/red at t=1. Call/put: option colour at t=0; path colour at t=1 (matches lines).
         color: resolvedLabelColor,
         font: {
-          weight: 'bold',
-          size: 15,
+          weight: '500',
+          size: 14,
           // No style: 'italic' here — italic is conveyed by the Unicode
           // math-italic letter in the label string itself (e.g. 𝑆, 𝐶, 𝑃),
           // keeping the number/equals/subscript portions upright.
@@ -589,12 +662,28 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           return value.toFixed(2);
         },
         align: function(context) {
+          const n = context.chart.data.labels.length;
+          const last = n - 1;
+          if (staggerEndLabels && context.dataIndex === last) {
+            if (invertYAxis) {
+              return context.datasetIndex === 0 ? 'bottom' : 'top';
+            }
+            return context.datasetIndex === 0 ? 'top' : 'bottom';
+          }
           const index = context.dataIndex;
           if (index === 0) return 'left';
-          if (index === context.chart.data.labels.length - 1) return 'right';
+          if (index === last) return 'right';
           return 'center';
         },
-        offset: 15,
+        offset: function(context) {
+          const n = context.chart.data.labels.length;
+          const last = n - 1;
+          const base = 15;
+          if (staggerEndLabels && context.dataIndex === last) {
+            return base + 10;
+          }
+          return base;
+        },
         clamp: false
       }
     },
@@ -606,7 +695,7 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           // label string handles the italic appearance without italicising
           // the numerals, equals sign, and spaces.
           font: {
-            size: 13,
+            size: 14,
             weight: '500',
             family: CHART_FONT_FAMILY
           }
@@ -621,13 +710,13 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           display: !hideYAxis,
           text: yLabel,
           color: '#374151',
-          font: { size: 13, weight: '600', family: CHART_FONT_FAMILY }
+          font: { size: 14, weight: '600', family: CHART_FONT_FAMILY }
         },
         ticks: {
           display: !hideYAxis,
           callback: (v) => v.toFixed(2),
           color: '#374151',
-          font: { size: 13, weight: '500', family: CHART_FONT_FAMILY }
+          font: { size: 14, weight: '500', family: CHART_FONT_FAMILY }
         },
         grid: { color: '#e5e7eb' }
       }

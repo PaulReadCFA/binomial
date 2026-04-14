@@ -37,6 +37,28 @@ export function debounce(fn, wait = 300) {
   };
 }
 
+export const NUMERIC_INPUT_MAX_CHARS = 6;
+
+/**
+ * @param {HTMLInputElement} input
+ * @param {number} maxLen
+ */
+export function clampNumericInputLength(input, maxLen) {
+  if (!input || input.value == null || maxLen <= 0) return;
+  const raw = String(input.value);
+  if (raw.length <= maxLen) return;
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  input.value = raw.slice(0, maxLen);
+  if (typeof input.setSelectionRange === 'function') {
+    const pos = Math.min(
+      typeof start === 'number' && typeof end === 'number' ? Math.min(start, end) : maxLen,
+      maxLen
+    );
+    input.setSelectionRange(pos, pos);
+  }
+}
+
 /**
  * Format number as currency (no space between USD and value)
  * @param {number} value - Numeric value
@@ -51,9 +73,17 @@ export function formatCurrency(value, signed = false) {
   });
 
   if (value < 0) {
-    return signed ? `-USD${formatted}` : `(USD${formatted})`;
+    return signed ? `\u2212USD${formatted}` : `(USD${formatted})`;
   }
   return `USD${formatted}`;
+}
+
+/**
+ * Format a number with fixed decimals, using Unicode minus (U+2212) for negatives (not ASCII hyphen).
+ */
+export function formatWithUnicodeMinus(value, decimals = 2) {
+  const s = Number(value).toFixed(decimals);
+  return s.startsWith('-') ? `\u2212${s.slice(1)}` : s;
 }
 
 /**

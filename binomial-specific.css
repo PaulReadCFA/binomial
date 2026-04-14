@@ -22,15 +22,19 @@
 }
 
 .result-title.call-option {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #1e40af;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .result-title.put-option {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #6d28d9;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .result-value {
@@ -39,6 +43,16 @@
   overflow-wrap: break-word;
   max-width: 100%;
 }
+
+/* Narrow viewport: chart toggle matches other explorers (forward exchange pattern) */
+#view-chart-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Section titles stay in normal card-content flow (align with “Binomial Trees” + legend).
+   Only .binomial-chart-container bleeds — see block below. */
 
 .binomial-chart-section {
   margin-bottom: 2rem;
@@ -57,18 +71,22 @@
 }
 
 .binomial-chart-container {
-  height: 20rem;
+  height: 22rem;
   position: relative;
-  border-radius: 0.5rem;
-  background: var(--color-gray-50);
-  border: 1px solid var(--color-gray-200);
-  padding: 1rem;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  padding: 0.75rem 0.5rem;
+  box-sizing: border-box;
 }
 
 .binomial-chart-container:focus {
   outline: 2px solid var(--color-blue-interactive);
   outline-offset: 2px;
 }
+
+/* Charts stay content-width so canvases / datalabels align with section titles + card header.
+   (Other explorers bleed #chart-container; binomial uses three stacked charts + visible h5s.) */
 
 .educational-note {
   padding: 0.75rem;
@@ -149,6 +167,17 @@
   font-weight: 500;
 }
 
+#calculator .input-section {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+#calculator .validation-summary {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
 @media (max-width: 640px) {
   .input-group-inline {
     flex-direction: column;
@@ -157,13 +186,22 @@
   }
   .input-inline {
     width: 100%;
+    max-width: 100%;
+    flex-wrap: wrap;
+    white-space: normal;
+    align-items: flex-start;
+    box-sizing: border-box;
+  }
+  .input-label-inline {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
   }
   .input-with-suffix-inline {
     width: 100%;
-    max-width: 12rem;
-  }
-  .input-label-inline {
-    min-width: auto;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .binomial-chart-container {
     height: 16rem;

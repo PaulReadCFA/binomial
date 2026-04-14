@@ -100,6 +100,11 @@
       font-size: 1.1rem;
       font-weight: 600;
       min-width: max-content;
+      white-space: nowrap;
+    }
+
+    .math-nowrap {
+      white-space: nowrap;
     }
 
     @media (max-width: 768px) {
@@ -199,7 +204,7 @@
                 </mrow>
               </mrow>
             </math>
-            in the up state
+            in the up state, and
           </p>
 
           <p class="equation-block" style="margin-left: 2rem; margin-bottom: 1.5rem;">
@@ -225,7 +230,7 @@
                 </mrow>
               </mrow>
             </math>
-            in the down state
+            in the down state.
           </p>
 
           <p style="margin-bottom: 1rem;">
@@ -257,7 +262,7 @@
                 </mrow>
               </mrow>
             </math>
-            in the up state
+            in the up state, and
           </p>
 
           <p class="equation-block" style="margin-left: 2rem; margin-bottom: 1.5rem;">
@@ -283,25 +288,13 @@
                 </mrow>
               </mrow>
             </math>
-            in the down state
+            in the down state.
           </p>
 
           <p style="margin-bottom: 1rem;">
-            From these option values the hedge ratio for the call (
-            <math xmlns="http://www.w3.org/1998/Math/MathML">
-              <msub>
-                <mstyle mathcolor="#1e40af"><mi>HR</mi></mstyle>
-                <mi>C</mi>
-              </msub>
-            </math>
-            ) and the hedge ratio for the put (
-            <math xmlns="http://www.w3.org/1998/Math/MathML">
-              <msub>
-                <mstyle mathcolor="#6d28d9"><mi>HR</mi></mstyle>
-                <mi>P</mi>
-              </msub>
-            </math>
-            ) can be computed by combining the stock with the appropriate option so that the combination becomes riskless:
+            From these option values, the hedge ratio for the call
+            <span class="math-nowrap">(<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mstyle mathcolor="#1e40af"><mi>HR</mi></mstyle><mi>C</mi></msub></math>)</span> and the hedge ratio for the put
+            <span class="math-nowrap">(<math xmlns="http://www.w3.org/1998/Math/MathML"><msub><mstyle mathcolor="#6d28d9"><mi>HR</mi></mstyle><mi>P</mi></msub></math>)</span> can be computed by combining the stock with the appropriate option so that the combination becomes riskless:
           </p>
 
           <p class="equation-block" style="margin-left: 2rem; margin-bottom: 1rem;">
