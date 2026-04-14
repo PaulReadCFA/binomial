@@ -187,6 +187,12 @@ function switchView(view) {
     if (chartBtn) { chartBtn.classList.add('active'); chartBtn.setAttribute('aria-pressed', 'true'); }
     if (tableBtn) { tableBtn.classList.remove('active'); tableBtn.setAttribute('aria-pressed', 'false'); }
     if (previousView !== 'chart') announceToScreenReader('Chart view active');
+    // Canvases were display:none in table view — resize after layout so charts (and page width) stay stable
+    requestAnimationFrame(() => {
+      [assetChart, callChart, putChart].forEach((ch) => {
+        if (ch && typeof ch.resize === 'function') ch.resize();
+      });
+    });
   } else {
     if (chartView) chartView.style.display = 'none';
     if (tableView) tableView.style.display = 'block';
@@ -338,22 +344,22 @@ function renderDynamicEquation(calc, params) {
 
   const content = `
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem;">Call Hedge Ratio:</div>
+      <div style="font-weight: 400; margin-bottom: 0.5rem;">Call Hedge Ratio:</div>
       <p style="margin-left: 1rem;">$$\\color{${cl}}{\\text{HR}_{C}} = \\frac{\\color{${cl}}{${calc.Cu.toFixed(2)}} - \\color{${cl}}{${calc.Cd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${cl}}{${calc.HRc.toFixed(4)}}$$</p>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem;">Call Option Price:</div>
+      <div style="font-weight: 400; margin-bottom: 0.5rem;">Call Option Price:</div>
       <p style="margin-left: 1rem;">$$\\color{${cl}}{c_0} = ${params.s0.toFixed(2)} \\times \\color{${cl}}{${calc.HRc.toFixed(4)}} - \\frac{\\color{${cl}}{${calc.HRc.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${cl}}{${calc.Cu.toFixed(2)}}}{${onePlusR}} = \\color{${cl}}{${calc.C0.toFixed(2)}}$$</p>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem;">Put Hedge Ratio:</div>
+      <div style="font-weight: 400; margin-bottom: 0.5rem;">Put Hedge Ratio:</div>
       <p style="margin-left: 1rem;">$$\\color{${pu}}{\\text{HR}_{P}} = \\frac{\\color{${pu}}{${calc.Pu.toFixed(2)}} - \\color{${pu}}{${calc.Pd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${pu}}{${calc.HRp.toFixed(4)}}$$</p>
     </div>
 
     <div style="margin-bottom: 0.5rem;">
-      <div style="font-weight: 600; margin-bottom: 0.5rem;">Put Option Price:</div>
+      <div style="font-weight: 400; margin-bottom: 0.5rem;">Put Option Price:</div>
       <p style="margin-left: 1rem;">$$\\color{${pu}}{p_0} = ${params.s0.toFixed(2)} \\times \\color{${pu}}{${calc.HRp.toFixed(4)}} - \\frac{\\color{${pu}}{${calc.HRp.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${pu}}{${calc.Pu.toFixed(2)}}}{${onePlusR}} = \\color{${pu}}{${calc.P0.toFixed(2)}}$$</p>
     </div>
   `;

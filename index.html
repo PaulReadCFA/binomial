@@ -201,22 +201,22 @@
         </div>
         <div class="card-content">
 
+          <!-- Legend outside chart/table panes so toggling views does not collapse this row -->
+          <div role="region" aria-label="Chart legend">
+            <div class="legend" id="chart-legend" role="list" aria-label="Legend">
+              <span class="legend-item" role="listitem">
+                <span class="legend-color" style="background-color: #047857;"></span>
+                Up path
+              </span>
+              <span class="legend-item" role="listitem">
+                <span class="legend-color" style="background-color: #b91c1c;"></span>
+                Down path
+              </span>
+            </div>
+          </div>
+
           <!-- Chart view -->
           <div id="chart-view">
-
-            <!-- Legend -->
-            <div role="region" aria-label="Chart legend">
-              <div class="legend" id="chart-legend" role="list" aria-label="Legend">
-                <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #047857;"></span>
-                  Up path
-                </span>
-                <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #b91c1c;"></span>
-                  Down path
-                </span>
-              </div>
-            </div>
 
             <!-- Hidden chart descriptions for screen readers -->
             <div class="sr-only" id="binomial-chart-desc">

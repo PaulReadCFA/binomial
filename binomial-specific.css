@@ -1,4 +1,10 @@
 /* Binomial Option Pricing Calculator Specific Styles */
+
+/* Avoid horizontal nudge when document scrollbar appears/disappears (chart vs table height). */
+html {
+  scrollbar-gutter: stable;
+}
+
 :root {
   --color-call-option: #1e40af;            /* Blue - call option (darker for WCAG AA) */
   --color-put-option: #6d28d9;             /* Purple - put option (darker for WCAG AA) */
@@ -178,6 +184,48 @@
   margin-bottom: 0.75rem;
 }
 
+/* Calculator inputs: stable grid (not flex-wrap) so rows/columns do not reflow when views below change. */
+#calculator .input-group-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+  row-gap: 1rem;
+  align-items: start;
+}
+
+#calculator .input-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9.5rem, 11rem);
+  column-gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  white-space: normal;
+}
+
+#calculator .input-label-inline {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+#calculator .input-with-suffix-inline {
+  width: 100%;
+  max-width: 11rem;
+  justify-self: end;
+}
+
+@media (max-width: 768px) {
+  #calculator .input-group-inline {
+    grid-template-columns: 1fr;
+  }
+
+  #calculator .input-with-suffix-inline {
+    justify-self: start;
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .input-group-inline {
     flex-direction: column;
@@ -203,6 +251,17 @@
     max-width: 100%;
     box-sizing: border-box;
   }
+
+  #calculator .input-inline {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  #calculator .input-with-suffix-inline {
+    justify-self: stretch;
+    max-width: 100%;
+  }
+
   .binomial-chart-container {
     height: 16rem;
   }
