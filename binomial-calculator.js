@@ -59,6 +59,27 @@ function formatChartValue(value, decimals = 2) {
   return s.startsWith('-') ? `\u2212${s.slice(1)}` : s;
 }
 
+/**
+ * t=1 up vs down values share one x-position; when they are equal or close in *data* terms,
+ * their pixels coincide and datalabels overlap. Stagger whenever the gap is tiny relative
+ * to the plotted y-span (not only when exactly equal — callers pass y0 + both branch values).
+ */
+function shouldStaggerEndLabels(y0, yUp, yDown, relativeRatio = 0.07) {
+  const lo = Math.min(y0, yUp, yDown);
+  const hi = Math.max(y0, yUp, yDown);
+  const span = hi - lo;
+  const gap = Math.abs(yUp - yDown);
+  if (!Number.isFinite(y0) || !Number.isFinite(yUp) || !Number.isFinite(yDown)) return false;
+  if (gap < 1e-9) return true;
+  if (!(span > 1e-12)) return true;
+  return gap / span < relativeRatio;
+}
+
+/** Same numeric payoff at t=1 for both paths — one dot, two datasets; datalabels must not duplicate. */
+function terminalValuesCoincide(yUp, yDown) {
+  return Math.abs(yUp - yDown) < 1e-9;
+}
+
 /** Table-only below this width (higher than 600px EEs so t=0 datalabels don’t crowd the y-axis on mid-width screens) */
 const NARROW_BREAKPOINT = 768;
 
@@ -467,6 +488,10 @@ function renderAssetChart(calc, params) {
 
   const assetLabelColor = function(context) {
     if (context.dataIndex === 0) return COLOR.neutral;
+    const last = context.chart.data.labels.length - 1;
+    if (context.dataIndex === last && terminalValuesCoincide(params.su, params.sd)) {
+      return COLOR.neutral;
+    }
     return context.dataset.borderColor; // green for up, red for down
   };
 
@@ -503,13 +528,17 @@ function renderAssetChart(calc, params) {
           if (datasetIndex === 1) return null; // suppress duplicate S0 label
           return `${ITALIC.S}${SUB[0]} = ${formatChartValue(value)}`;
         }
+        if (terminalValuesCoincide(params.su, params.sd)) {
+          if (datasetIndex === 1) return null;
+          return `Up / Down path = ${formatChartValue(value)}`;
+        }
         return datasetIndex === 0
           ? `Up path = ${formatChartValue(value)}`
           : `Down path = ${formatChartValue(value)}`;
       },
       false,
       assetLabelColor,
-      Math.abs(params.su - params.sd) < 1e-6
+      shouldStaggerEndLabels(params.s0, params.su, params.sd) && !terminalValuesCoincide(params.su, params.sd)
     )
   });
 }
@@ -555,13 +584,22 @@ function renderCallChart(calc, params) {
           if (datasetIndex === 1) return null; // suppress duplicate C0 label
           return `${ITALIC.C}${SUB[0]} = ${formatChartValue(value)}`;
         }
+        if (terminalValuesCoincide(calc.Cu, calc.Cd)) {
+          if (datasetIndex === 1) return null;
+          return `Up / Down path = ${formatChartValue(value)}`;
+        }
         return datasetIndex === 0
           ? `Up path = ${formatChartValue(value)}`
           : `Down path = ${formatChartValue(value)}`;
       },
       false,
-      (ctx) => (ctx.dataIndex === 0 ? COLOR.call : (ctx.datasetIndex === 0 ? COLOR.up : COLOR.down)),
-      Math.abs(calc.Cu - calc.Cd) < 1e-6
+      (ctx) => {
+        if (ctx.dataIndex === 0) return COLOR.call;
+        const last = ctx.chart.data.labels.length - 1;
+        if (ctx.dataIndex === last && terminalValuesCoincide(calc.Cu, calc.Cd)) return COLOR.call;
+        return ctx.datasetIndex === 0 ? COLOR.up : COLOR.down;
+      },
+      shouldStaggerEndLabels(calc.C0, calc.Cu, calc.Cd) && !terminalValuesCoincide(calc.Cu, calc.Cd)
     )
   });
 }
@@ -611,13 +649,22 @@ function renderPutChart(calc, params) {
           if (datasetIndex === 1) return null; // suppress duplicate P0 label
           return `${ITALIC.P}${SUB[0]} = ${formatChartValue(value)}`;
         }
+        if (terminalValuesCoincide(calc.Pu, calc.Pd)) {
+          if (datasetIndex === 1) return null;
+          return `Up / Down path = ${formatChartValue(value)}`;
+        }
         return datasetIndex === 0
           ? `Up path = ${formatChartValue(value)}`
           : `Down path = ${formatChartValue(value)}`;
       },
       true,            // invertYAxis — down payoff appears visually lower
-      (ctx) => (ctx.dataIndex === 0 ? COLOR.put : (ctx.datasetIndex === 0 ? COLOR.up : COLOR.down)),
-      Math.abs(calc.Pu - calc.Pd) < 1e-6
+      (ctx) => {
+        if (ctx.dataIndex === 0) return COLOR.put;
+        const last = ctx.chart.data.labels.length - 1;
+        if (ctx.dataIndex === last && terminalValuesCoincide(calc.Pu, calc.Pd)) return COLOR.put;
+        return ctx.datasetIndex === 0 ? COLOR.up : COLOR.down;
+      },
+      shouldStaggerEndLabels(calc.P0, calc.Pu, calc.Pd) && !terminalValuesCoincide(calc.Pu, calc.Pd)
     )
   });
 }
@@ -667,17 +714,21 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
         formatter: customLabelFormatter || function(value) {
           return value.toFixed(2);
         },
+        anchor: function(context) {
+          const last = context.chart.data.labels.length - 1;
+          // Overlapping t=1 points: pin to the marker centre so labels are not pulled to one side.
+          if (staggerEndLabels && context.dataIndex === last) return 'center';
+          return 'center';
+        },
         align: function(context) {
           const n = context.chart.data.labels.length;
           const last = n - 1;
           if (staggerEndLabels && context.dataIndex === last) {
-            if (invertYAxis) {
-              return context.datasetIndex === 0 ? 'bottom' : 'top';
-            }
-            return context.datasetIndex === 0 ? 'top' : 'bottom';
+            return 'center';
           }
           const index = context.dataIndex;
-          if (index === 0) return 'left';
+          // t=0 is on the plot’s left — "left" align shoves labels outside the chart; use "right" into the plot.
+          if (index === 0) return 'right';
           if (index === last) return 'right';
           return 'center';
         },
@@ -686,7 +737,12 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           const last = n - 1;
           const base = 15;
           if (staggerEndLabels && context.dataIndex === last) {
-            return base + 10;
+            // Pure vertical separation in px (+y is down). No horizontal shift.
+            const bump = 22;
+            return {
+              x: 0,
+              y: context.datasetIndex === 0 ? -bump : bump
+            };
           }
           return base;
         },
