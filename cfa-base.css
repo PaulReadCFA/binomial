@@ -1,73 +1,556 @@
 /* ==========================================================================
-   CFA Calculator Base Styles — Unified Foundation
-   Shared styles for all CFA Institute calculators
+   CFA Calculator Base Styles
+   Shared foundation for all CFA Institute calculators
    WCAG AA compliant, responsive, accessible
-   Version: 3.1 (Unified + Lato)
+   Version: 3.0 — Brand-aligned colour system
+   Updated: 2026
+
+   WORKSPACE MASTER (Equation Explorers)
+   ─────────────────────────────────────
+   Source: Compound Interest exemplar (PaulReadCFA/exemplar) v3 brand system.
+   Edit only _shared/cfa-base.css, then run scripts/sync-cfa-base.sh.
+   Each explorer vendors a local copy for portable / offline use.
+   Keep product-specific rules in *-specific.css, not in this file.
+
+   Version: 3.1 (Master — exemplar lineage)
+
+   COLOUR SYSTEM OVERVIEW
+   ══════════════════════════════════════════════════════════════════════════
+   Source: CFA Brand Guidelines 2026, Draft 1.01–1.04
+
+   All colours tested for WCAG AA (4.5:1 normal text, 3:1 large text / UI
+   components) against --surface-card (#FFFFFF) and --surface-stripe
+   (#E6E6EF). See individual token comments for ratios.
+
+   THREE-TIER COLOUR HIERARCHY:
+   1. Brand colour used as-is         → labelled  ✦ BRAND
+   2. Brand colour, darkened for AA   → labelled  ▲ BRAND VARIANT (exception noted)
+   3. Off-brand, added for function   → labelled  ◆ FUNCTIONAL (exception noted)
+
+   CRITICAL ARCHITECTURAL RULE — EQUATION EXPLORERS:
+   ──────────────────────────────────────────────────
+   Variable-coloured text (--var-*) MUST ONLY appear on --surface-card
+   (#FFFFFF). NEVER on striped, tinted, or coloured rows.
+
+   Rationale: the tightest variable colour is --var-orange at 4.59:1 on
+   pure white. Any background with luminance below ~0.97 will cause it to
+   fail AA. Striped and tinted rows use --color-dark-blue or
+   --color-gray-800 text only.
+
+   Data tables and formula boxes are separate DOM regions precisely so
+   formula variables always sit on a white surface.
+   ══════════════════════════════════════════════════════════════════════════
    ========================================================================== */
+
+   /* ==========================================================================
+   CFA Calculator Base Styles — v3 ADDENDUM
+   Extra guidance and reference (Compound Interest Exemplar audit, 2026).
+   Lives in this file after the overview banner and before :root / @import.
+   ========================================================================== */
+ 
+ 
+/* ==========================================================================
+   A. CANVAS / LTI EMBED SURFACE OVERRIDE
+   ══════════════════════════════════════════════════════════════════════════
+   Canvas LMS wraps each LTI tool in a page with a grey gutter
+   (approximately #F8F8F8 / rgb(248,248,248)). By default cfa-base sets
+   body to --surface-page (Warm White 25%, #FDFAF7), which clashes with
+   the host chrome. The fix is a one-line body override in *-specific.css.
+ 
+   DEFINE this in your *-specific.css:
+ 
+     :root {
+       --exemplar-embed-surface: rgb(248, 248, 248);   (matches Canvas host gutter)
+      }
+      body {
+        background-color: var(--exemplar-embed-surface);
+      }
+  
+    DO NOT change .card or --surface-card. Cards must remain white (#FFFFFF).
+  
+    WHY THIS MATTERS FOR COLOUR COMPLIANCE
+    ──────────────────────────────────────
+    --var-6 / --color-orange-deep (#B95B1D) is 4.33:1 on #F8F8F8.
+    That is below the 4.5:1 AA normal-text threshold.
+  
+    This is why the white-only rule for --var-* text is non-negotiable in
+    Canvas deployments. Equation variables, legend labels, and rate/period
+    labels coloured with --var-* tokens must always sit inside a .card
+    element (white interior), not on the page gutter or any tinted surface.
+  
+    Contrast on #F8F8F8 by variable token:
+      --var-1  #06005A   18.1:1  ✓ AA
+      --var-2  #3C6AE5    4.50:1  ✓ AA (marginal — large text recommended)
+      --var-3  #7A46FF    4.81:1  ✓ AA
+      --var-4  #0079A6    4.66:1  ✓ AA
+      --var-5  #07514F    7.71:1  ✓ AA
+      --var-6  #B95B1D    4.33:1  ✗ FAIL — white card surfaces only
+      --var-7  #646464    5.45:1  ✓ AA
+  
+    Only --var-6 fails. Keep it inside cards. All others technically pass
+    on the Canvas gutter, but the white-only rule covers all tokens for
+    consistency and forward safety.
+    ========================================================================== */
+  
+  
+ /* ==========================================================================
+    B. MATHJAX / MATHML HEX REFERENCE
+    ══════════════════════════════════════════════════════════════════════════
+    MathML mathcolor attributes and Chart.js dataset colours cannot read
+    CSS custom properties. Any code using these APIs must hardcode the hex
+    values below. When a token value changes in :root, update here too.
+  
+    CANONICAL HEX TABLE (v3)
+    ────────────────────────
+    CSS token              Hex        Use in mathcolor / Chart.js
+    ──────────────────────────────────────────────────────────────
+    --var-1  (Dark Blue)   #06005A    Primary variable (PV, price, P₀)
+    --var-2  (Deep Blue)   #3C6AE5    Second variable  (PMT, coupon, accumulated A)
+    --var-3  (Purple)      #7A46FF    Tertiary accent  (context-specific; e.g. YTM)
+    --var-4  (Deep Teal)   #0079A6    Period / count   (N, n, t)
+    --var-5  (Pine)        #07514F    Principal / growth (P, g)
+    --var-6  (Deep Orange) #B95B1D    Rate / result    (r, i, FV — on white only)
+    --var-7  (Dark Grey)   #646464    Seventh variable / annotations
+  
+    UI CHROME (non-variable, needed for Chart.js options)
+    ──────────────────────────────────────────────────────
+    --color-gray-200       #E5E7EB    Grid lines
+    --color-gray-700       #374151    Axis labels
+    --color-gray-800       #1F2937    Tick labels, tooltip text
+    --surface-card         #FFFFFF    Chart canvas / tooltip background
+  
+    USAGE PATTERN — JavaScript PALETTE object
+    ──────────────────────────────────────────
+    Keep a PALETTE constant at the top of your calculator.js that mirrors
+    these values. Add a comment on each line pointing back to the CSS token.
+    When the token changes, the comment makes the matching hex easy to find.
+  
+    Example:
+      const PALETTE = {
+        var1:        '#06005A',  // --var-1  / --color-primary-dark-blue
+        var2:        '#3C6AE5',  // --var-2  / --color-blue-interactive
+        var3:        '#7A46FF',  // --var-3  / --color-purple-bold
+        var4:        '#0079A6',  // --var-4  / --color-teal-data
+        var5:        '#07514F',  // --var-5  / --color-green-data (Pine)
+        var6:        '#B95B1D',  // --var-6  / --color-orange-deep
+        gray200:     '#E5E7EB',  // --color-gray-200
+        gray700:     '#374151',  // --color-gray-700
+        gray800:     '#1F2937',  // --color-gray-800
+        surfaceCard: '#FFFFFF',  // --surface-card
+      };
+  
+    USAGE PATTERN — MathML mathcolor attribute
+    ───────────────────────────────────────────
+    Use the hex directly. Match the variable role to the token above.
+  
+    Example (A = P × (1 + r)^n):
+      <mi mathcolor="#3C6AE5">A</mi>          <!-- --var-2 accumulated amt  -->
+      <mn mathcolor="#07514F">{P}</mn>         <!-- --var-5 principal        -->
+      <mn mathcolor="#B95B1D">{rDecimal}</mn>  <!-- --var-6 rate (on white!) -->
+      <mn mathcolor="#0079A6">{n}</mn>         <!-- --var-4 periods          -->
+    ========================================================================== */
+  
+  
+ /* ==========================================================================
+    C. V2 → V3 MIGRATION NOTE: --color-green-data VALUE CHANGE
+    ══════════════════════════════════════════════════════════════════════════
+    In v2:  --color-green-data: #15803d  (Tailwind green-700, bright grass)
+    In v3:  --color-green-data → --var-5 → #07514F  (Brand Pine, dark forest)
+  
+    This is a VISUAL BREAKING CHANGE. Any calculator using --color-green-data
+    for a variable colour (typically principal P or growth rate g) will shift
+    from bright green to dark pine-green when upgrading to v3 base CSS.
+  
+    The new value is better: Pine is a defined brand secondary colour; the
+    old #15803d was an off-brand Tailwind utility value.
+  
+    ACTION REQUIRED WHEN UPGRADING:
+    1. Update any MathML mathcolor="#15803d" → mathcolor="#07514F"
+    2. Update any Chart.js PALETTE entries using #15803d → #07514F
+    3. Review screenshots / visual tests that include P or g variables
+    4. Check that #07514F is visually distinct from --var-4 (#0079A6) in
+       your specific equation layout (both are dark green-teal family;
+       they differ clearly in hue but may be harder to distinguish for
+       deuteranopia users — consider adding italic or bold weight to one)
+  
+    CONTRAST NOTE:
+    #07514F is 8.10:1 on white — passes AA comfortably.
+    #07514F is 7.71:1 on #F8F8F8 (Canvas gutter) — also passes.
+    ========================================================================== */
+  
+  
+ /* ==========================================================================
+    D. TOKEN NAMING CONVENTION FOR NEW CODE
+    ══════════════════════════════════════════════════════════════════════════
+    v3 introduces two naming layers:
+  
+    LAYER 1 — Canonical tokens (use in base CSS declarations only)
+      --cfa-*      Raw brand values from the 2026 brand guide (reference only)
+      --var-1..7   Accessible variable colours for equation explorers
+      --surface-*  Locked background surfaces
+  
+    LAYER 2 — Legacy aliases (use in component CSS and HTML)
+      --color-blue-interactive  → --var-2
+      --color-purple-bold       → --var-3
+      --color-teal-data         → --var-4
+      --color-green-data        → --var-5
+      --color-orange-deep       → --var-6
+      --color-primary-dark-blue → --cfa-dark-blue
+      (full list in Section H of cfa-base.css)
+  
+    RECOMMENDATION:
+    - In *-specific.css and HTML inline styles: use legacy alias names.
+      They are more readable in context ("this is orange" vs "this is var-6")
+      and make the variable identity clear to anyone reading the HTML.
+    - In base CSS declarations and the PALETTE/mathcolor table above:
+      use canonical names with alias comments.
+    - When all calculators have been audited and legacy names confirmed
+      consistent, deprecate the aliases and migrate to --var-* names.
+  
+    NEW CODE SHOULD NOT introduce new off-token hex values for variable
+    colours. If a formula needs a colour not covered by --var-1 through
+    --var-7, add a new --var-8 token to the base with full documentation
+    rather than putting a bare hex in specific CSS.
+    ========================================================================== */
+  
+  
+ /* ==========================================================================
+    E. INLINE VARIABLE TOKEN MARKUP — USE CLASSES NOT INLINE STYLES
+    ══════════════════════════════════════════════════════════════════════════
+    v3 cfa-base.css defines .eq-var-1 through .eq-var-7 and .eq-chip-1
+    through .eq-chip-7 for colouring inline equation variable tokens in HTML.
+  
+    PREFERRED:
+      <label>Principal (<span class="eq-var-5">P</span>):</label>
+      <span class="eq-chip-4">n</span>
+  
+    AVOID:
+      <span style="color: var(--color-green-data); font-style: italic;">P</span>
+      <span style="color: var(--color-teal-data); font-style: italic;">n</span>
+  
+    The class approach:
+    - Keeps colour decisions in CSS, not scattered through HTML
+    - Automatically picks up future token value updates
+    - Makes it easy to search for all variable colour usages
+    - The italic style is applied per-class, so it's consistent
+  
+    .eq-var-* applies colour + bold weight (text in equations).
+    .eq-chip-* applies colour + matching tint background (for selector chips,
+    legend swatches, variable key rows).
+  
+    KNOWN DEVIATION IN EXEMPLAR:
+    index.html currently has two inline style= attributes for P and n labels
+    (lines ~87 and ~97). These should be updated to eq-var-5 and eq-var-4.
+    ========================================================================== */
+
+
+ /* ==========================================================================
+    F. CURRENCY NOTATION — EE QUALITY REVIEW
+    ══════════════════════════════════════════════════════════════════════════
+    EE QR checklist (Labeling consistency): use ISO 4217 currency CODES, not
+    symbols. EUR ✓ — € ✗. USD ✓ — $ ✗.
+
+    IMPLEMENTATION (calculator.js — one place to change per topic)
+    ─────────────────────────────────────────────────────────────
+    Define at the top of calculator.js:
+
+      const CURRENCY_ISO = 'USD';              // or EUR, GBP, … per spec
+      const CURRENCY_SPEECH_LABEL = 'US dollars';  // screen-reader phrasing
+
+    Use in:
+      fmtMoneyVisual()   →  `USD1,234.56`  — results card, chart tooltips (no column header)
+      fmtMoneyAmount()   →  `1,234.56`     — table body cells (unit already in thead / data-label)
+      fmtMoneySpeech()   →  `1,234.56 US dollars`  (not “U-S-D” letter-by-letter)
+      Chart axis title   →  `Amount (USD)`  (unit in label, not $ on ticks)
+      Table headers      →  `Amount (USD)` in <th> and matching data-label on <td>
+      Results card       →  fmtMoneyVisual for visible headline values
+
+    Do NOT use $, €, £, ¥ in visible HTML, MathML, chart tooltips, tables, or
+    results. Excel tolerance copy in build docs may say “$0.01” for authors;
+    learner-facing explorer UI must follow ISO codes.
+
+    SEMANTIC PARITY
+    ───────────────
+    Chart tooltips, table cells, and results must show the same numeric values
+    for the same period (QR: display modes must not change meaning). Table cells
+    omit the ISO prefix when the column header already carries it.
+
+    See README § Quality review (EE QR checklist) for the full builder map.
+    ========================================================================== */
+
+/* Google Fonts - Lato */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;500;600;700&display=swap');
 
 /* ==========================================================================
-   1. CSS VARIABLES — WCAG AA Compliant Color Palette
+   1. CSS VARIABLES
    ========================================================================== */
 :root {
-  /* Primary Data Colors */
-  --color-primary-dark-blue: #06005a;
-  --color-blue-interactive: #3c6ae5;
-  --color-secondary-dark-blue: #38337b;
-  --color-purple-bold: #7a46ff;
-  --color-purple-200: #e9d5ff;
-  --color-purple-300: #d8b4fe;
-  --color-eggplant-deep: #50037f;
-  --color-eggplant-medium: #733599;
-  --color-orange-deep: #b95b1d;
-  --color-orange-accent: #b35b21;
-  --color-orange-darker: #a84f15;
-  --color-teal-data: #0079a6;
-  --color-green-data: #15803d;
-  --color-green-data-alt: #047857;
-  --color-red-2: #b82937;
 
-  /* Background Colors */
-  --color-bg-blue: #eff6ff;
-  --color-bg-purple: #faf5ff;
-  --color-bg-orange: #fff7ed;
-  --color-bg-green: #f0fdf4;
-  --color-bg-teal: #f0fdfa;
+  /* ──────────────────────────────────────────────────────────────────────
+     A. BRAND COLOUR REFERENCE
+     Raw values from CFA Brand Guidelines 2026, Draft 1.01.
+     Listed here as canonical references. Use the role-based tokens
+     below for all implementation. Use these raw values only for
+     decorative/non-text purposes (borders, backgrounds, icons).
+     ────────────────────────────────────────────────────────────────────── */
 
-  /* Gray Scale */
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
+  /* Core palette */
+  --cfa-dark-blue:   #06005A; /* 18.1:1 on white — primary brand anchor     */
+  --cfa-bright-blue: #326AFF; /* 4.52:1 on white — MARGINAL, UI only        */
+  --cfa-warm-white:  #F7ECDE; /* bg/surface use only                        */
+  --cfa-purple:      #7A46FF; /* 5.06:1 on white — passes AA as text        */
+  --cfa-cyan:        #00BBFF; /* 2.50:1 on white — decoration ONLY, not text*/
+
+  /* Secondary palette */
+  --cfa-pine:        #07514F; /* 8.10:1 on white — passes AA as text        */
+  --cfa-lime:        #CFD477; /* 1.31:1 on white — decoration ONLY, not text*/
+  --cfa-aqua:        #63D3D0; /* 1.53:1 on white — decoration ONLY, not text*/
+  --cfa-mauve:       #ECACE5; /* 1.41:1 on white — decoration ONLY, not text*/
+  --cfa-orange:      #FF8861; /* 1.55:1 on white — decoration ONLY, not text*/
+
+  /* Neutrals */
+  --cfa-light-grey:  #E9E9E9;
+  --cfa-dark-grey:   #646464; /* 5.74:1 on white — passes AA as text        */
+  --cfa-black:       #000000;
+
+  /* Brand tints used as surfaces (from brand guide % tint system) */
+  --cfa-dark-blue-10:   #E6E6EF; /* Dark Blue 10% — used as table stripe    */
+  --cfa-bright-blue-10: #EAF0FF; /* Bright Blue 10% — used for var chip bg  */
+  --cfa-purple-10:      #F2EDFF; /* Purple 10% — used for var chip bg       */
+  --cfa-cyan-10:        #E6F8FF; /* Cyan 10% — used for var chip bg         */
+  --cfa-pine-10:        #E6EEED; /* Pine 10% — used for var chip bg         */
+  --cfa-warm-white-25:  #FDFAF7; /* Warm White 25% — used for page bg       */
+  --cfa-orange-10:      #FFF2F0; /* Orange 10% — used for var chip bg       */
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     B. SURFACE & BACKGROUND TOKENS  ← LOCKED
+     These values are fixed. Changing them requires re-testing all
+     --var-* colours for WCAG compliance. See architectural rule above.
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* ✦ BRAND — Warm White 25% tint (#FDFAF7)
+     Replaces off-brand #f9fafb (Tailwind gray-50).
+     Warm White is a defined brand core colour; the 25% tint is its
+     lightest usable surface value for large areas. */
+  --surface-page:    #FDFAF7;
+
+  /* ✦ BRAND — White (#FFFFFF)
+     Card surfaces, formula boxes, equation regions.
+     REQUIRED for any surface carrying --var-* coloured text. */
+  --surface-card:    #FFFFFF;
+
+  /* ✦ BRAND — Dark Blue 10% tint (#E6E6EF)
+     Table row striping. Defined in brand guide tint system.
+     Only --color-dark-blue or --color-gray-800 text permitted on this
+     surface. Variable-coloured text (--var-*) must not appear here. */
+  --surface-stripe:  #E6E6EF;
+
+  /* ✦ BRAND — Dark Blue 10% tint, same as stripe.
+     Used for table header backgrounds, section dividers. */
+  --surface-subtle:  #E6E6EF;
+
+  /* ✦ BRAND — Bright Blue 10% tint (#EAF0FF)
+     Hover state on interactive rows, selected variable chip background. */
+  --surface-hover:   #EAF0FF;
+
+  /* ✦ BRAND — Warm White (#F7ECDE)
+     Formula box decorative background where a warmer feel is needed.
+     Only use with dark text. Do not place --var-* coloured text here
+     without re-testing (Warm White bg has L=0.851, orange fails at 3.9:1). */
+  --surface-warm:    #F7ECDE;
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     C. EQUATION EXPLORER VARIABLE COLOURS
+     Used to colour-code variable tokens in rendered equations.
+     All values tested at 4.5:1+ against --surface-card (#FFFFFF).
+     MUST NOT be placed on --surface-stripe or any tinted background.
+     Assign one colour per variable role and use it consistently
+     across all calculators (PV is always --var-1, etc.).
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* ✦ BRAND — Dark Blue #06005A — 18.1:1 on white
+     Role: PV, price, primary input value
+     Direct brand core colour. No modification needed. */
+  --var-1: #06005A;
+  --var-1-bg: var(--cfa-bright-blue-10); /* chip bg: Bright Blue 10% */
+
+  /* ▲ BRAND VARIANT — Bright Blue darkened: #3C6AE5 — 4.79:1 on white
+     Role: PMT, coupon, periodic cash flow
+     EXCEPTION: Brand Bright Blue #326AFF passes AA at only 4.52:1 —
+     within 0.08 of the threshold. At that margin, rendering differences
+     between browsers and subpixel antialiasing can cause real-world
+     failures. Darkened by approx. 8 lightness points to #3C6AE5 (4.79:1)
+     for reliable compliance. Colour remains recognisably Bright Blue. */
+  --var-2: #3C6AE5;
+  --var-2-bg: var(--cfa-bright-blue-10); /* chip bg: Bright Blue 10% */
+
+  /* ✦ BRAND — Purple #7A46FF — 5.06:1 on white
+     Role: r, YTM, discount rate, interest rate
+     Brand core colour used as-is. Passes AA comfortably. */
+  --var-3: #7A46FF;
+  --var-3-bg: var(--cfa-purple-10); /* chip bg: Purple 10% */
+
+  /* ▲ BRAND VARIANT — Cyan darkened: #0079A6 — 4.90:1 on white
+     Role: N, number of periods, time
+     EXCEPTION: Brand Cyan #00BBFF is 2.50:1 on white — fails AA and
+     large-text thresholds. Shifted to a darker teal-blue that retains
+     the cyan-family hue identity while meeting WCAG AA. */
+  --var-4: #0079A6;
+  --var-4-bg: var(--cfa-cyan-10); /* chip bg: Cyan 10% */
+
+  /* ✦ BRAND — Pine #07514F — 8.10:1 on white
+     Role: g, growth rate, dividend yield, secondary result
+     Brand secondary colour used as-is. Dark forest green, clearly
+     distinct from the teal of --var-4 on hue axis. */
+  --var-5: #07514F;
+  --var-5-bg: var(--cfa-pine-10); /* chip bg: Pine 10% */
+
+  /* ▲ BRAND VARIANT — Orange darkened: #B95B1D — 4.59:1 on white
+     Role: FV, terminal value, calculated result output
+     EXCEPTION: Brand Orange #FF8861 is 1.55:1 on white — fails badly.
+     Darkened to a warm sienna-orange that retains the orange-family hue.
+     NOTE: this is the tightest passing colour in the set. It must ONLY
+     appear on --surface-card (#FFFFFF). See architectural rule above. */
+  --var-6: #B95B1D;
+  --var-6-bg: var(--cfa-orange-10); /* chip bg: Orange 10% */
+
+  /* ◆ FUNCTIONAL — Dark Grey #646464 — 5.74:1 on white
+     Role: seventh variable where needed (rare), footnote references
+     EXCEPTION: not a named brand colour. However, --cfa-dark-grey is
+     specified in the brand neutrals and its contrast is confirmed AA.
+     Use only when a seventh distinct colour is genuinely required. */
+  --var-7: #646464;
+  --var-7-bg: var(--color-gray-100); /* chip bg: light grey */
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     D. UI INTERACTIVE COLOURS
+     Used for buttons, focus rings, interactive chrome.
+     At this scale (large text / UI components), 3:1 threshold applies.
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* ✦ BRAND — Bright Blue #326AFF — 4.52:1 on white (3:1 UI threshold)
+     Used for: buttons, focus outlines, active toggle borders.
+     Passes both the 3:1 UI component threshold and (marginally) AA text.
+     Use --var-2 (#3C6AE5) for any small-text application of this blue. */
+  --color-interactive: #326AFF;
+
+  /* ✦ BRAND — Dark Blue 75% tint #444083 — 9.1:1 on white
+     Used for: secondary labels, subheadings, less prominent UI chrome.
+     Replaces off-brand --color-secondary-dark-blue (#38337b). */
+  --color-dark-blue-secondary: #444083;
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     E. SEMANTIC / STATUS COLOURS
+     ────────────────────────────────────────────────────────────────────── */
+
+  /* ◆ FUNCTIONAL — #B91C1C — 7.2:1 on white
+     Error text. Not a brand colour. Standard accessible red retained
+     for universal error-state recognition. */
+  --color-error:    #B91C1C;
+  --color-error-bg: #FEF2F2;
+
+  /* ✦ BRAND — Pine #07514F — 8.1:1 on white
+     Success text. Switched from off-brand #047857 to brand Pine.
+     Both are dark greens; Pine is now the canonical brand choice. */
+  --color-success:    #07514F;
+  --color-success-bg: var(--cfa-pine-10);
+
+  /* ▲ BRAND VARIANT — Orange darkened #B95B1D — 4.59:1 on white
+     Warning text. Same value as --var-6 by design: the warm orange
+     family is the natural brand colour for caution states. */
+  --color-warning:    #B95B1D;
+  --color-warning-bg: var(--cfa-orange-10);
+
+  /* ◆ FUNCTIONAL — #8B93A7 — 3.10:1 on white (non-text, 3:1 UI threshold)
+     Input field borders. Not a brand colour. This specific value was
+     chosen to meet WCAG AA 3:1 non-text contrast requirement for form
+     inputs. Do not lighten without re-testing. */
+  --color-input-border: #8B93A7;
+  --color-input-border-hover: #6B7590; /* darkened for hover AA */
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     F. GREY SCALE — UTILITY
+     Tailwind-compatible grey ramp for typography hierarchy, borders,
+     disabled states. Not brand colours; retained as functional neutral
+     system. Use sparingly — prefer brand surfaces for background colour.
+     ────────────────────────────────────────────────────────────────────── */
+
+  --color-gray-50:  #F9FAFB;
+  --color-gray-100: #F3F4F6;
+  --color-gray-200: #E5E7EB;
+  --color-gray-300: #D1D5DB;
+  --color-gray-400: #9CA3AF;
+  --color-gray-500: #6B7280;
+  --color-gray-600: #4B5563;
   --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
+  --color-gray-800: #1F2937;
   --color-gray-900: #111827;
 
-  /* Validation & Feedback */
-  --color-red-50: #fef2f2;
-  --color-red-200: #fecaca;
-  --color-red-300: #fca5a5;
-  --color-red-500: #ef4444;
-  --color-red-700: #b91c1c;
-  --color-red-800: #991b1c;
 
-  /* Semantic Colors */
-  --color-error: #b91c1c;
-  --color-error-bg: #fef2f2;
-  --color-success: #047857;
-  --color-success-bg: #f0fdf4;
-  --color-warning: #b95b1d;
-  --color-warning-bg: #fff7ed;
+  /* ──────────────────────────────────────────────────────────────────────
+     G. ERROR / VALIDATION COLOUR SCALE
+     ────────────────────────────────────────────────────────────────────── */
 
-  /* Item 1: darkened input border */
-  --color-input-border: #8b93a7;
+  --color-red-50:  #FEF2F2;
+  --color-red-200: #FECACA;
+  --color-red-300: #FCA5A5;
+  --color-red-500: #EF4444;
+  --color-red-700: #B91C1C;
+  --color-red-800: #991B1C;
+
+
+  /* ──────────────────────────────────────────────────────────────────────
+     H. LEGACY ALIASES  ← DEPRECATE AFTER CALCULATOR CONSOLIDATION
+     Kept to prevent breaking changes in existing calculator files.
+     Point at the canonical token; do not introduce new usage.
+     Remove once all calculators reference the v3 token names.
+     ────────────────────────────────────────────────────────────────────── */
+
+  --color-primary-dark-blue:    var(--cfa-dark-blue);
+  --color-secondary-dark-blue:  var(--color-dark-blue-secondary);
+  --color-blue-interactive:     var(--var-2);         /* was #3c6ae5 — same value */
+  --color-purple-bold:          var(--var-3);         /* was #7a46ff — same value */
+  --color-teal-data:            var(--var-4);         /* was #0079a6 — same value */
+  --color-green-data:           var(--var-5);         /* changed: #15803d → #07514F (brand Pine) */
+  --color-orange-deep:          var(--var-6);         /* was #b95b1d — same value */
+  --color-primary:              var(--color-interactive);
+  --color-dark:                 var(--cfa-dark-blue);
+  --color-dark-alt:             var(--color-dark-blue-secondary);
+  --color-blue:                 var(--var-2);
+  --color-green:                var(--var-5);
+  --color-purple:               var(--var-3);
+  --color-yield:                var(--var-5);
+  --color-mint:                 var(--var-4);
+  --color-orange:               var(--var-6);
+  --color-orange-text:          var(--var-6);
+
+  /* Surface legacy aliases */
+  --color-bg-blue:   var(--var-2-bg);
+  --color-bg-purple: var(--var-3-bg);
+  --color-bg-orange: var(--var-6-bg);
+  --color-bg-green:  var(--var-5-bg);
+  --color-bg-teal:   var(--var-4-bg);
+
+  /* REMOVED — duplicates deleted in v3:
+     --color-orange-accent:   #b35b21  (≤6 lightness pts from --var-6, redundant)
+     --color-orange-darker:   #a84f15  (≤10 lightness pts from --var-6, redundant)
+     --color-green-data-alt:  #047857  (near-duplicate of Pine #07514F)
+     --color-eggplant-deep:   #50037f  (off-brand, duplicates --var-3 role)
+     --color-eggplant-medium: #733599  (off-brand, duplicates --var-3 role)
+     --color-purple-200:      #e9d5ff  (replaced by --var-3-bg / --cfa-purple-10)
+     --color-purple-300:      #d8b4fe  (unused tint, no role; removed)
+     --color-red-2:           #b82937  (duplicate of --color-red-700; removed)
+  */
 }
+
 
 /* ==========================================================================
    2. RESET & BASE TYPOGRAPHY
-      Item 2: Lato font, 16 px body, 24 px headings weight 400
    ========================================================================== */
 *,
 *::before,
@@ -77,35 +560,21 @@
   box-sizing: border-box;
 }
 
-[hidden] {
-  display: none !important;
-}
-
 html {
-  font-size: 16px;
+  font-size: 18px; /* LDO: ≥14pt (~18px) readable text at 100% zoom */
   scroll-behavior: smooth;
 }
 
-/* Item 2: Lato as primary body font at 16 px */
 body {
   font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-gray-50);
+  background-color: var(--surface-page);   /* ✦ BRAND: Warm White 25% tint */
   color: var(--color-gray-800);
   line-height: 1.5;
   padding: 0 1.5rem 1.5rem;
   min-height: 100vh;
-  font-size: 1rem; /* 16 px */
+  font-size: 1rem;
 }
 
-@media (max-width: 640px) {
-  body { padding: 1rem; }
-}
-@media (max-width: 400px) {
-  body { padding: 0 0.75rem 1.5rem; }
-}
-@media (max-width: 340px) {
-  body { padding: 0 0.5rem 1.5rem; }
-}
 
 /* ==========================================================================
    3. ACCESSIBILITY UTILITIES
@@ -118,11 +587,11 @@ body {
   margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
-  clip-path: inset(50%);
   white-space: nowrap;
   border-width: 0;
 }
 
+/* Skip Links */
 .skip-link {
   position: absolute;
   top: -100px;
@@ -131,7 +600,7 @@ body {
   padding: 0.75rem 1.25rem;
   min-height: 44px;
   min-width: 44px;
-  background: var(--color-blue-interactive);
+  background: var(--color-interactive);   /* ✦ BRAND: Bright Blue #326AFF */
   color: white;
   text-decoration: none;
   border-radius: 0.375rem;
@@ -144,17 +613,31 @@ body {
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-.skip-link:focus       { top: 1rem; outline: 3px solid #fff; outline-offset: 2px; }
-.skip-link:hover       { background: #2d59c4; }
-.skip-link:nth-child(2)        { top: -150px; }
-.skip-link:nth-child(3)        { top: -200px; }
-.skip-link:nth-child(4)        { top: -250px; }
-.skip-link:nth-child(2):focus  { top: 4rem; }
-.skip-link:nth-child(3):focus  { top: 7.25rem; }
-.skip-link:nth-child(4):focus  { top: 10.5rem; }
+
+.skip-link:focus {
+  top: 1rem;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+.skip-link:hover {
+  background: #2452CC; /* Bright Blue, darkened for hover state */
+}
+
+.skip-link:nth-child(2) { top: -150px; }
+.skip-link:nth-child(3) { top: -200px; }
+.skip-link:nth-child(4) { top: -250px; }
+
+.skip-link:nth-child(2):focus { top: 4rem; }
+.skip-link:nth-child(3):focus { top: 7.25rem; }
+.skip-link:nth-child(4):focus { top: 10.5rem; }
 
 @media (max-width: 640px) {
-  .skip-link { font-size: 0.875rem; padding: 0.625rem 1rem; left: 0.5rem; }
+  .skip-link {
+    font-size: 0.875rem;
+    padding: 0.625rem 1rem;
+    left: 0.5rem;
+  }
   .skip-link:nth-child(2):focus { top: 3.5rem; }
   .skip-link:nth-child(3):focus { top: 6.5rem; }
   .skip-link:nth-child(4):focus { top: 9.5rem; }
@@ -163,12 +646,13 @@ body {
 section[tabindex]:focus-visible,
 table[tabindex]:focus-visible,
 canvas[tabindex]:focus-visible {
-  outline: 2px solid var(--color-blue-interactive);
+  outline: 2px solid var(--color-interactive);
   outline-offset: 4px;
-  border-radius: 0.25rem;
 }
 
-.noscript-hidden { display: none; }
+.noscript-hidden {
+  display: none;
+}
 
 kbd {
   display: inline-block;
@@ -184,13 +668,13 @@ kbd {
   font-weight: 600;
 }
 
+
 /* ==========================================================================
    4. LAYOUT & CONTAINERS
    ========================================================================== */
 .container {
   max-width: 90rem;
   margin: 0 auto;
-  padding: 1rem 0;
 }
 
 .content {
@@ -206,7 +690,9 @@ kbd {
 }
 
 @media (min-width: 860px) {
-  .middle-row { flex-direction: row; }
+  .middle-row {
+    flex-direction: row;
+  }
   .middle-row > section:first-child { flex: 1; }
   .middle-row > section:last-child  { flex: 2; }
 }
@@ -218,16 +704,19 @@ kbd {
 }
 
 @media (min-width: 640px) {
-  .grid-container          { grid-template-columns: repeat(12, 1fr); }
-  .grid-item-left          { grid-column: span 3; }
-  .grid-item-right         { grid-column: span 9; }
+  .grid-container {
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .grid-item-left  { grid-column: span 3; }
+  .grid-item-right { grid-column: span 9; }
 }
 
+
 /* ==========================================================================
-   5. CARD COMPONENTS
+   5. CARD & TYPOGRAPHY
    ========================================================================== */
 .card {
-  background: white;
+  background: var(--surface-card);   /* ✦ BRAND: White — required for --var-* text */
   border: 1px solid var(--color-gray-100);
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -235,57 +724,32 @@ kbd {
   --card-padding-x: 1.25rem;
 }
 
-.card-sticky {
-  position: sticky;
-  top: 1rem;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+/* Calculator / data-entry card — brand blue frame (EE convention; exemplars A & B) */
+#calculator.card,
+#data-entry.card {
+  border: 2px solid var(--color-interactive); /* ✦ BRAND: Bright Blue #326AFF */
 }
 
-@media (min-width: 640px) { .card { padding: 1.5rem; --card-padding-x: 1.5rem; } }
-@media (max-width: 768px) { .card { padding: 1rem; --card-padding-x: 1rem; } }
-@media (max-width: 400px) { .card { padding: 0.75rem; --card-padding-x: 0.75rem; } }
-@media (max-width: 340px) { .card { padding: 0.5rem; --card-padding-x: 0.5rem; } }
-
-/* Item 2: card headings — Lato, 24 px / 1.5 rem, weight 400 */
 .card-title {
-  font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 1.5rem;   /* 24 px */
-  font-weight: 400;
-  color: var(--color-gray-800);
+  font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 1.5rem;
+  color: var(--cfa-dark-blue);         /* ✦ BRAND: Dark Blue */
   margin-bottom: 0.75rem;
+  font-weight: 400;
   letter-spacing: 0.01em;
 }
-
-@media (max-width: 640px) { .card-title { font-size: 1.25rem; } }
-@media (max-width: 480px) { .card-title { font-size: 1.125rem; } }
 
 .card-content {
   font-size: 1rem;
   color: rgba(0, 0, 0, 0.8);
-  overflow: visible;
 }
 
-.card-header-with-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.card-header-with-controls .card-title { margin-bottom: 0; flex-shrink: 0; }
-
-@media (max-width: 640px) {
-  .card-header-with-controls { flex-direction: column; align-items: flex-start; }
-}
 
 /* ==========================================================================
    6. BUTTONS & CONTROLS
    ========================================================================== */
 .model-selector,
-.model-controls,
-.view-controls {
+.model-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -296,16 +760,28 @@ kbd {
 }
 
 .view-controls {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
   padding-bottom: 0;
   border-bottom: none;
 }
 
-.model-selector-label,
-.control-label {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--color-gray-700);
+/* Legend wrapper (first flex item): grow so Chart/Table hug the right; min-width
+   lets the row wrap cleanly. (.legend is nested — flex:1 on it had no effect.)
+   Buttons and .button-group are excluded: explorers without a legend would
+   otherwise stretch the first toggle button across the row. */
+.view-controls > :first-child:not(button):not(.button-group) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.view-controls .legend,
+.view-controls .chart-legend {
+  margin-bottom: 0;
 }
 
 .button-group {
@@ -316,10 +792,19 @@ kbd {
   margin-left: auto;
 }
 
+.model-selector-label,
+.control-label {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-gray-700);
+  margin-bottom: 0.5rem;
+}
+
 .model-btn,
 .toggle-btn {
   padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
+  font-family: 'Lato', sans-serif;
   border-radius: 0.375rem;
   border: 2px solid var(--color-gray-300);
   background-color: white;
@@ -330,20 +815,39 @@ kbd {
   min-width: 44px;
   min-height: 44px;
 }
-.model-btn:hover,
-.toggle-btn:hover     { background-color: var(--color-gray-50); border-color: var(--color-gray-400); }
-.model-btn:focus,
-.toggle-btn:focus,
-.model-btn:focus-visible,
-.toggle-btn:focus-visible { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; }
-.model-btn.active,
-.toggle-btn.active    { background-color: var(--color-blue-interactive); color: white; font-weight: 600; border-color: var(--color-blue-interactive); }
-.toggle-btn:disabled  { opacity: 0.5; cursor: not-allowed; }
 
+.model-btn:hover,
+.toggle-btn:hover {
+  background-color: var(--surface-hover);   /* ✦ BRAND: Bright Blue 10% */
+  border-color: var(--color-gray-400);
+}
+
+.model-btn:focus,
+.toggle-btn:focus {
+  outline: 2px solid var(--color-interactive);   /* ✦ BRAND: Bright Blue */
+  outline-offset: 2px;
+}
+
+.model-btn.active,
+.toggle-btn.active {
+  background-color: var(--color-interactive);   /* ✦ BRAND: Bright Blue */
+  color: white;
+  font-weight: 600;
+  border-color: var(--color-interactive);
+  box-shadow: 0 0 0 2px #000000;
+}
+
+/* Chart/Table: right-aligned ≤640px; full-width equal targets ≤380px (WCAG touch). */
 @media (max-width: 640px) {
   .view-controls {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .view-controls > :first-child:not(button):not(.button-group) {
+    flex: none;
+    width: 100%;
+    min-width: 0;
   }
 
   .view-controls .button-group {
@@ -397,29 +901,703 @@ kbd {
   }
 }
 
-.toggle-section-btn {
-  background: none;
-  border: none;
-  color: var(--color-gray-600);
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  transition: color 0.2s ease, transform 0.2s ease;
-  min-width: 44px;
-  min-height: 44px;
-}
-.toggle-section-btn:hover { color: var(--color-gray-800); }
-.toggle-section-btn:focus { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; border-radius: 4px; }
-.toggle-section-btn .toggle-icon { display: inline-block; transition: transform 0.2s ease; }
-.toggle-section-btn[aria-expanded="false"] .toggle-icon { transform: rotate(-90deg); }
 
 /* ==========================================================================
-   7. FORM INPUTS
-      Item 1: border colour darkened to #8b93a7
-      Item 10: tighter label-to-input spacing
+   7. FORMULA BOXES
+   Formula boxes always use --surface-card (white) to guarantee
+   --var-* colours remain WCAG AA compliant.
    ========================================================================== */
+.formula-box {
+  background: var(--surface-card);           /* REQUIRED: white for var colour compliance */
+  border-left: 4px solid var(--cfa-dark-blue); /* ✦ BRAND: Dark Blue accent */
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 1rem;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.formula-box-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin-bottom: 0.5rem;
+  text-align: center;
+  letter-spacing: 0.025em;
+}
+
+.equation-intro {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-gray-600);
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.calculator-instructions {
+  font-size: 1rem;
+  color: var(--color-gray-600);
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* Variable colour utility classes — for inline equation tokens.
+   Only use inside .formula-box or any element on --surface-card. */
+.eq-var-1 { color: var(--var-1); font-weight: 600; }
+.eq-var-2 { color: var(--var-2); font-weight: 600; }
+.eq-var-3 { color: var(--var-3); font-weight: 600; }
+.eq-var-4 { color: var(--var-4); font-weight: 600; }
+.eq-var-5 { color: var(--var-5); font-weight: 600; }
+.eq-var-6 { color: var(--var-6); font-weight: 600; }
+.eq-var-7 { color: var(--var-7); font-weight: 600; }
+
+/* Variable chip: coloured token with tint background.
+   Used for interactive variable selectors and equation legends. */
+.eq-chip { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-weight: 600; font-size: 0.9375rem; }
+.eq-chip-1 { color: var(--var-1); background: var(--var-1-bg); }
+.eq-chip-2 { color: var(--var-2); background: var(--var-2-bg); }
+.eq-chip-3 { color: var(--var-3); background: var(--var-3-bg); }
+.eq-chip-4 { color: var(--var-4); background: var(--var-4-bg); }
+.eq-chip-5 { color: var(--var-5); background: var(--var-5-bg); }
+.eq-chip-6 { color: var(--var-6); background: var(--var-6-bg); }
+.eq-chip-7 { color: var(--var-7); background: var(--var-7-bg); }
+
+
+/* ==========================================================================
+   8. RESULT BOXES
+   ========================================================================== */
+.result-box {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 2px solid;
+  margin-bottom: 1rem;
+}
+
+.result-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.result-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+
+/* ==========================================================================
+   9. CHART & TABLE CONTAINERS
+   ========================================================================== */
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+}
+
+/* Full-width chart: cancel horizontal card padding (inherits --card-padding-x from .card) */
+#visualizer #chart-container.chart-wrapper,
+#visualizer #chart-container .chart-wrapper,
+#visualization-card #chart-container.chart-wrapper {
+  margin-left: calc(-1 * var(--card-padding-x, 1.25rem));
+  margin-right: calc(-1 * var(--card-padding-x, 1.25rem));
+  width: calc(100% + 2 * var(--card-padding-x, 1.25rem));
+  max-width: none;
+  box-sizing: border-box;
+  border-radius: 0;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.table-wrapper,
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-gray-200);
+}
+
+.legend,
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  color: var(--color-gray-700);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-color {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.125rem;
+  display: inline-block;
+  border: none;
+}
+
+
+/* ==========================================================================
+   10. DATA TABLES
+   STRIPE RULE: --surface-stripe (#E6E6EF, Dark Blue 10%) is used for
+   alternating rows. Only --color-gray-800 or --cfa-dark-blue text
+   is permitted on striped rows. Do not colour table cell text with
+   any --var-* token.
+   ========================================================================== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+  background: var(--surface-card);
+}
+
+.data-table thead th {
+  background-color: var(--surface-subtle);   /* ✦ BRAND: Dark Blue 10% */
+  color: var(--color-gray-800);
+  font-weight: 700;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid var(--cfa-dark-blue); /* ✦ BRAND: Dark Blue border */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-size: 1rem;
+}
+
+.data-table tbody td,
+.data-table tbody th {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-gray-200);
+  color: var(--color-gray-800);
+}
+
+/* ✦ BRAND: Dark Blue 10% (#E6E6EF) for stripe.
+   All body text on this surface uses --color-gray-800 or --cfa-dark-blue.
+   --var-* coloured text must not appear on these rows. */
+.data-table tbody tr:nth-child(even) {
+  background-color: var(--surface-stripe);
+}
+
+.data-table tbody tr:nth-child(odd) {
+  background-color: var(--surface-card);
+}
+
+/* ✦ BRAND: Bright Blue 10% (#EAF0FF) for hover */
+.data-table tbody tr:hover {
+  background-color: var(--surface-hover);
+}
+
+.data-table tbody tr:last-child td,
+.data-table tbody tr:last-child th {
+  border-bottom: none;
+}
+
+.data-table tfoot th,
+.data-table tfoot td {
+  padding: 0.65rem 0.75rem;
+  border-top: 2px solid var(--cfa-dark-blue);   /* ✦ BRAND: Dark Blue */
+  font-weight: 600;
+  background-color: var(--surface-subtle);
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  text-align: left;
+}
+
+.data-table th:not(:first-child),
+.data-table td:not(:first-child) {
+  text-align: right;
+}
+
+.table-note {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-style: italic;
+}
+
+/* Responsive card-style table for narrow screens */
+@media (max-width: 768px) {
+  .table-card-layout .data-table,
+  .table-card-layout .data-table thead,
+  .table-card-layout .data-table tbody,
+  .table-card-layout .data-table th,
+  .table-card-layout .data-table td,
+  .table-card-layout .data-table tr {
+    display: block;
+  }
+
+  /* Table is display:block in card mode — caption must be block too or it collapses oddly */
+  .table-card-layout .data-table caption {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    caption-side: top;
+    padding: 0 0.5rem 0.75rem;
+    margin: 0 0 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--color-gray-800);
+    text-align: left;
+  }
+
+  .table-card-layout .data-table thead {
+    display: none;
+  }
+
+  .table-card-layout .data-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* No striping in card mode — each card is its own visual unit */
+  .table-card-layout .data-table tbody tr:nth-child(even),
+  .table-card-layout .data-table tbody tr:nth-child(odd) {
+    background: var(--surface-card);
+  }
+
+  .table-card-layout .data-table tr {
+    display: block;
+    background: var(--surface-card);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .table-card-layout .data-table tr:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .table-card-layout .data-table td[data-label]:first-child {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--cfa-dark-blue);   /* ✦ BRAND: Dark Blue */
+    padding: 0 0 0.5rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-gray-200);
+    text-align: left;
+    display: block;
+  }
+
+  .table-card-layout .data-table td[data-label]:not(:first-child) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--color-gray-100);
+    gap: 0.375rem;
+    flex-wrap: nowrap;
+  }
+
+  .table-card-layout .data-table td[data-label]:not(:first-child):last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .table-card-layout .data-table td[data-label]:not(:first-child)::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    font-size: 1rem;
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 40%;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .table-card-layout .data-table td[data-label]:not(:first-child) span {
+    font-weight: 600;
+    color: var(--color-gray-900);
+    white-space: normal;
+    flex-shrink: 0;
+    flex-grow: 1;
+    text-align: right;
+    font-size: 1rem;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  .table-card-layout .data-table tfoot {
+    display: block;
+    margin-top: 0.75rem;
+  }
+
+  .table-card-layout .data-table tfoot tr {
+    background: var(--surface-subtle) !important;
+    border: 2px solid var(--color-gray-300);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .table-card-layout .data-table tfoot th[scope="row"] {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-gray-800);
+    padding: 0 0 0.75rem 0;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-gray-300);
+    display: block;
+  }
+
+  .table-card-layout .data-table tfoot td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+
+  .table-card-layout .data-table tfoot td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .table-card-layout .data-table tfoot td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--color-gray-700);
+    font-size: 1rem;
+  }
+
+  .table-card-layout .data-table tfoot td strong {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+}
+
+
+/* ==========================================================================
+   11. VALIDATION & ERROR HANDLING
+   ========================================================================== */
+.validation-summary {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background-color: var(--color-error-bg);
+  border: 2px solid var(--color-red-500);
+  border-left: 4px solid var(--color-red-700);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(185, 28, 28, 0.1);
+}
+
+.validation-title {
+  color: var(--color-red-800);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  margin-bottom: 0.625rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.validation-title::before {
+  content: "\26A0";
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.validation-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.validation-summary li {
+  color: var(--color-red-800);
+  font-size: 0.9375rem;
+  padding-left: 1.5rem;
+  position: relative;
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.validation-summary li:last-child {
+  margin-bottom: 0;
+}
+
+.validation-summary li::before {
+  content: "\2022";
+  position: absolute;
+  left: 0.5rem;
+  font-weight: bold;
+  color: var(--color-red-700);
+}
+
+.validation-summary a {
+  color: var(--color-red-800);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.validation-summary a:hover {
+  text-decoration: underline;
+}
+
+.validation-summary a:focus {
+  outline: 2px solid var(--color-red-700);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+
+/* ==========================================================================
+   12. UTILITY CLASSES
+   ========================================================================== */
+.text-sm  { font-size: 0.875rem; }
+.text-xs  { font-size: 0.75rem; }
+.text-lg  { font-size: 1.125rem; }
+
+.text-center { text-align: center; }
+.text-left   { text-align: left; }
+.text-right  { text-align: right; }
+
+.font-bold     { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium   { font-weight: 500; }
+
+.text-gray-500 { color: var(--color-gray-500); }
+.text-gray-700 { color: var(--color-gray-700); }
+.text-gray-800 { color: var(--color-gray-800); }
+.text-red-500  { color: var(--color-red-500); }
+.text-red-800  { color: var(--color-red-800); }
+
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+
+.ml-1 { margin-left: 0.25rem; }
+.ml-2 { margin-left: 0.5rem; }
+
+/* Variable colour text utilities — use ONLY on --surface-card */
+.text-blue      { color: var(--var-2); }
+.text-purple    { color: var(--var-3); }
+.text-orange    { color: var(--var-6); }
+.text-green     { color: var(--var-5); }
+.text-teal      { color: var(--var-4); }
+.text-dark-blue { color: var(--cfa-dark-blue); }
+
+/* Background tint utilities */
+.bg-blue   { background-color: var(--var-2-bg); }
+.bg-purple { background-color: var(--var-3-bg); }
+.bg-orange { background-color: var(--var-6-bg); }
+.bg-green  { background-color: var(--var-5-bg); }
+.bg-teal   { background-color: var(--var-4-bg); }
+
+/* Border utilities */
+.border-blue   { border-color: var(--var-2); }
+.border-purple { border-color: var(--var-3); }
+.border-orange { border-color: var(--var-6); }
+.border-green  { border-color: var(--var-5); }
+.border-teal   { border-color: var(--var-4); }
+
+
+/* ==========================================================================
+   CUSTOM TOOLTIP STYLING
+   Skip empty title="" (JS sometimes left that after clearing a tip).
+   Chart/Table toggles should not use title — use #chart-helper-text when
+   chart is disabled on narrow widths (exemplar / bond pattern).
+   ========================================================================== */
+button[title]:not([title=""]) {
+  position: relative;
+}
+
+button[title]:not([title=""]):hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-gray-900);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+
+button[title]:not([title=""]):hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-gray-900);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  button[title]:not([title=""]):hover::after {
+    white-space: normal;
+    max-width: 240px;
+    text-align: center;
+  }
+}
+
+
+/* ==========================================================================
+   13. RESPONSIVE BEHAVIOUR
+   ========================================================================== */
+@media (max-width: 860px) {
+  .legend,
+  .chart-legend {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 1rem;
+  }
+  .card {
+    padding: 1rem;
+    --card-padding-x: 1rem;
+  }
+  .card-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .card {
+    padding: 0.875rem;
+    --card-padding-x: 0.875rem;
+  }
+  .card-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* Disabled button state */
+.toggle-btn:disabled,
+.model-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  background-color: var(--color-gray-300) !important;
+  color: var(--color-gray-500) !important;
+  border-color: var(--color-gray-300) !important;
+  box-shadow: none !important;
+}
+
+#view-chart-btn[disabled],
+#view-chart-btn[disabled]:hover,
+#view-chart-btn[disabled]:focus,
+#view-chart-btn[disabled]:active {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  background-color: var(--color-gray-300) !important;
+  color: var(--color-gray-500) !important;
+  border-color: var(--color-gray-300) !important;
+}
+
+.force-table #view-chart-btn,
+.force-table #view-chart-btn:hover,
+.force-table #view-chart-btn:focus,
+.force-table #view-chart-btn:active {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  background-color: var(--color-gray-300) !important;
+  color: var(--color-gray-500) !important;
+  border-color: var(--color-gray-300) !important;
+}
+
+@media (max-width: 600px) {
+  .force-table #chart-container {
+    display: none !important;
+  }
+  .force-table #table-container {
+    display: block !important;
+  }
+}
+
+
+/* ==========================================================================
+   14. PRINT & REDUCED MOTION
+   ========================================================================== */
+@media print {
+  .skip-link,
+  .button-group,
+  .model-selector,
+  .view-controls {
+    display: none;
+  }
+  .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  #chart-container {
+    display: none;
+  }
+  #table-container {
+    display: block !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skip-link {
+    transition: none !important;
+  }
+}
+
+
+/* ==========================================================================
+   COMPATIBILITY — Shared explorer form / info / tooltip patterns
+   Promoted from the prior forwardrate-lineage base so existing calculators
+   keep working. Prefer these class names in new explorers too; put only
+   one-off product rules in *-specific.css.
+   ========================================================================== */
+
+/* --- Form inputs --- */
 .input-section {
   display: flex;
   flex-direction: column;
@@ -435,24 +1613,46 @@ kbd {
   gap: 0.25rem;
 }
 
-.required-star { color: var(--color-error); margin-left: 0.25rem; }
+.required-star {
+  color: var(--color-error);
+  margin-left: 0.25rem;
+}
 
-/* Item 1: border colour */
 .input-field {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-input-border);
   border-radius: 0.375rem;
-  font-size: 1rem;
+  font-family: inherit;
+  font-size: 0.875rem;
   transition: all 0.2s;
   min-height: 44px;
+  background: var(--surface-card);
+  color: var(--color-gray-800);
 }
-.input-field:hover  { border-color: var(--color-gray-500); }
-.input-field:focus  { outline: none; border-color: var(--color-blue-interactive); box-shadow: 0 0 0 3px rgba(60, 106, 229, 0.1); }
+
+.input-field:hover {
+  border-color: var(--color-input-border-hover);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-blue-interactive);
+  box-shadow: 0 0 0 3px rgba(60, 106, 229, 0.1);
+}
+
 .input-field.error,
-.input-field[aria-invalid="true"] { border-color: var(--color-red-500); border-width: 2px; background-color: var(--color-red-50); }
+.input-field[aria-invalid="true"] {
+  border-color: var(--color-red-500);
+  border-width: 2px;
+  background-color: var(--color-red-50);
+}
+
 .input-field.error:focus,
-.input-field[aria-invalid="true"]:focus { border-color: var(--color-red-700); box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.2); }
+.input-field[aria-invalid="true"]:focus {
+  border-color: var(--color-red-700);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.2);
+}
 
 .input-wrapper {
   display: flex;
@@ -471,29 +1671,28 @@ kbd {
   min-width: 1.8ch;
   flex-shrink: 0;
 }
+
 .input-prefix { padding-right: 0.3rem; }
 .input-suffix { padding-left: 0.3rem; }
 
-/* Inline input layout — item 10: tighter gap */
 .input-group-inline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1.25rem 0.75rem;  /* reduced from 2rem to tighten row spacing */
+  gap: 2rem;
 }
 
 .input-inline {
   display: flex;
   align-items: center;
-  gap: 0.375rem;  /* item 10: reduced gap between label and input */
+  gap: 0.5rem;
   white-space: nowrap;
 }
 
 .input-label-inline {
   font-size: 0.875rem;
   color: var(--color-gray-700);
-  min-width: fit-content;  /* item 10: no fixed min-width; label hugs its text */
-  font-weight: 500;
+  min-width: fit-content;
 }
 
 .input-with-suffix-inline {
@@ -504,7 +1703,6 @@ kbd {
   position: relative;
 }
 
-/* Item 1: border colour for inline fields */
 .input-field-inline {
   flex: 1;
   width: 100%;
@@ -512,14 +1710,29 @@ kbd {
   padding-right: 1.5rem;
   border: 1px solid var(--color-input-border);
   border-radius: 0.375rem;
+  font-family: inherit;
   font-size: 0.875rem;
   text-align: right;
   box-sizing: border-box;
   min-height: 44px;
+  background: var(--surface-card);
+  color: var(--color-gray-800);
 }
-.input-field-inline:hover { border-color: var(--color-gray-500); }
-.input-field-inline:focus { outline: none; border-color: var(--color-blue-interactive); box-shadow: 0 0 0 2px rgba(60, 106, 229, 0.1); }
-.input-field-inline.error { border-color: var(--color-red-700) !important; box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.2); }
+
+.input-field-inline:hover {
+  border-color: var(--color-input-border-hover);
+}
+
+.input-field-inline:focus {
+  outline: none;
+  border-color: var(--color-blue-interactive);
+  box-shadow: 0 0 0 2px rgba(60, 106, 229, 0.1);
+}
+
+.input-field-inline.error {
+  border-color: var(--color-red-700) !important;
+  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.2);
+}
 
 .input-prefix-inline {
   position: absolute;
@@ -531,7 +1744,10 @@ kbd {
   font-size: 0.875rem;
   z-index: 1;
 }
-.input-field-inline.input-with-prefix { padding-left: 2.5rem; }
+
+.input-field-inline.input-with-prefix {
+  padding-left: 2.5rem;
+}
 
 .input-suffix-inline {
   position: absolute;
@@ -543,83 +1759,28 @@ kbd {
   width: 1.2rem;
   text-align: right;
   font-size: 0.875rem;
-  font-weight: 500;
 }
 
 @media (max-width: 640px) {
-  .input-group-inline { flex-direction: column; align-items: flex-start; gap: 1rem; }
-  .input-inline       { width: 100%; }
-  .input-with-suffix-inline { width: 100%; max-width: 12rem; }
+  .input-group-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .input-inline { width: 100%; }
+  .input-with-suffix-inline {
+    width: 100%;
+    max-width: 12rem;
+  }
 }
 
-.required-text { font-size: 0.75rem; color: var(--color-gray-500); margin-bottom: 1rem; }
-
-/* ==========================================================================
-   8. FORMULA BOXES
-   ========================================================================== */
-.formula-box {
-  background: white;
-  border-left: 4px solid var(--color-gray-400);
-  border-radius: 0 0.5rem 0.5rem 0;
-  padding: 0.75rem 1rem;
-  min-height: 160px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-.formula-box:focus { outline: 3px solid var(--color-gray-400); outline-offset: 2px; box-shadow: 0 0 0 4px rgba(107, 114, 128, 0.1); }
-.formula-box-title { font-size: 0.875rem; font-weight: 600; color: var(--color-gray-700); margin-bottom: 0.5rem; text-align: center; letter-spacing: 0.025em; }
-.equation-intro {
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--color-gray-600);
-  margin-bottom: 1rem;
-  text-align: left;
-}
-
-.model-equations-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-}
-@media (min-width: 768px) { .model-equations-grid { grid-template-columns: 1fr 1fr 1fr; } }
-@media (max-width: 767px) { .model-equations-grid { grid-template-columns: 1fr; } .formula-box { min-height: auto; } }
-
-/* ==========================================================================
-   9. RESULT BOXES
-   ========================================================================== */
-.result-box {
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border: 2px solid;
+.required-text {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
   margin-bottom: 1rem;
 }
-.result-box:last-child { margin-bottom: 0; }
-.result-box:focus { outline: 3px solid currentColor; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1); }
 
-.result-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  letter-spacing: normal;
-  text-transform: none;
-}
-.result-value       { font-size: 1.5rem; font-weight: 700; line-height: 1.2; word-break: break-word; }
-.result-description,
-.result-secondary   { font-size: 0.875rem; color: var(--color-gray-700); line-height: 1.3; margin-top: 0.5rem; }
-.result-value-small { font-size: 0.875rem; color: var(--color-gray-700); font-weight: 400; }
-
-.result-details { display: flex; flex-direction: column; gap: 0.5rem; }
-.result-detail  { font-size: 0.8125rem; font-weight: 500; color: var(--color-gray-700); line-height: 1.6; }
-.result-detail strong { color: var(--color-gray-900); font-weight: 600; }
-
-@media (max-width: 640px) { .result-value { font-size: 1.5rem; } }
-@media (max-width: 400px) { .result-value { font-size: 1.25rem; } .result-box { padding: 0.875rem; } }
-
-.results-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-
+/* --- Static info row (bond / bondytm) --- */
 .info-box {
   display: flex;
   flex-wrap: wrap;
@@ -632,168 +1793,147 @@ kbd {
   margin-bottom: 1rem;
   font-size: 0.875rem;
 }
-.info-item  { display: flex; align-items: center; gap: 0.5rem; }
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .info-label { color: var(--color-gray-700); }
 .info-value { font-weight: 600; }
 
-/* ==========================================================================
-   10. EQUATION DISPLAY
-   ========================================================================== */
-.equation-container {
-  padding: 1rem;
-  margin: 0.75rem 0;
-  background: white;
-  border: 1px solid var(--color-gray-200);
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  overflow-y: hidden;
-  max-width: 100%;
-  -webkit-overflow-scrolling: touch;
-  text-align: center;
-}
-.equation-container:focus-visible { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; }
-
-@media (max-width: 768px) { .equation-container math { font-size: 0.95em; } .equation-container { padding: 0.75rem; } }
-@media (max-width: 640px) { .equation-container math { font-size: 0.85em; } .equation-container { padding: 0.5rem; } }
-@media (max-width: 480px) { .equation-container math { font-size: 0.75em; } .equation-container { padding: 0.25rem; } }
-
-#mathml-equation {
-  text-align: center;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* --- Results helpers used across explorers --- */
+.result-description,
+.result-secondary {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+  line-height: 1.3;
 }
 
-math {
-  display: inline-block;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-gray-800);
-  margin: 0.5rem auto;
-  font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', serif;
-}
-math[display="block"] { display: block; text-align: center; margin: 0.5em auto; }
-
-#dynamic-equation-container math { font-size: 1rem; color: var(--color-gray-700); }
-
-@media (max-width: 900px)  { #dynamic-equation-container math { font-size: 0.9em; } }
-@media (max-width: 768px)  { #dynamic-equation-container math { font-size: 0.8em; } }
-@media (max-width: 640px)  { #dynamic-equation-container math { font-size: 0.7em; } }
-@media (max-width: 480px)  { #dynamic-equation-container math { font-size: 0.6em; } }
-
-#html-equation { display: block; text-align: center; font-size: 1.125rem; line-height: 2; width: 100%; }
-
-@supports not (math-style: normal) {
-  mfrac { display: inline-table; vertical-align: middle; text-align: center; border-collapse: collapse; }
-  mfrac > * { display: table-row; text-align: center; }
-  mfrac > :first-child { border-bottom: 1px solid currentColor; padding: 0.2em 0.5em; }
-  mfrac > :last-child  { padding: 0.2em 0.5em; }
-  msup > :last-child   { font-size: 0.7em; vertical-align: super; }
-  msub > :last-child   { font-size: 0.7em; vertical-align: sub; }
-}
-
-/* ==========================================================================
-   11. CHART & VISUALIZATION
-   ========================================================================== */
-.chart-wrapper {
-  position: relative;
-  width: 100%;
-  height: 28rem;
-  min-height: 400px;
-  border-radius: 0;
-  background: transparent;
-  border: none;
-}
-.chart-wrapper:focus-visible { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; }
-
-@media (max-width: 768px) { .chart-wrapper { height: 20rem; } }
-@media (max-width: 640px) { .chart-wrapper { height: 24rem; } }
-
-/* Full-width chart: cancel horizontal card padding (inherits --card-padding-x from .card) */
-#visualizer #chart-container.chart-wrapper,
-#visualizer #chart-container .chart-wrapper,
-#visualization-card #chart-container.chart-wrapper {
-  margin-left: calc(-1 * var(--card-padding-x, 1.25rem));
-  margin-right: calc(-1 * var(--card-padding-x, 1.25rem));
-  width: calc(100% + 2 * var(--card-padding-x, 1.25rem));
-  max-width: none;
-  box-sizing: border-box;
-  border-radius: 0;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-.chart-bar-button         { position: absolute; background: transparent; border: none; padding: 0; cursor: pointer; z-index: 20; }
-.chart-bar-button:focus   { outline: 3px solid var(--color-blue-interactive); outline-offset: -3px; background: rgba(60, 106, 229, 0.1); }
-.chart-bar-button:hover   { background: rgba(60, 106, 229, 0.05); }
-
-.legend,
-.chart-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
+.result-value-small {
   font-size: 0.875rem;
   color: var(--color-gray-700);
 }
-.legend-item  { display: inline-flex; align-items: center; gap: 0.5rem; }
-.legend-color { width: 0.75rem; height: 0.75rem; border-radius: 0.125rem; display: inline-block; border: none; }
 
-@media (max-width: 860px) { .legend, .chart-legend { font-size: 0.75rem; } }
-
-@media (max-width: 480px) {
-  .force-table #chart-container  { display: none !important; }
-  .force-table #table-container  { display: block !important; }
-  .force-table #view-chart-btn   { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+.result-detail {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-gray-700);
 }
 
-/* ==========================================================================
-   12. DATA TABLES
-       Item 5: slightly more visible stripe (gray-100 instead of gray-50)
-   ========================================================================== */
-.table-wrapper,
-.table-scroll-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-gray-200);
+.result-detail strong {
+  color: var(--color-gray-900);
+  font-weight: 600;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.result-box:focus {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+.result-box:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Equation mount extras --- */
+.equation-container:focus-visible {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+.equation-container math,
+#dynamic-equation-container math {
   max-width: 100%;
-  width: 100%;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-  background: white;
+#html-equation,
+#mathml-equation {
+  max-width: 100%;
 }
-.data-table caption { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-.data-table thead th { background-color: var(--color-gray-100); color: var(--color-gray-800); font-weight: 600; text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid var(--color-gray-300); position: sticky; top: 0; z-index: 10; font-size: 0.875rem; }
-.data-table tbody td,
-.data-table tbody th { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-gray-200); color: var(--color-gray-800); }
 
-/* Item 5: stripe with gray-100 for better visibility at close zoom */
-.data-table tbody tr:nth-child(even) { background-color: var(--color-gray-100); }
+.formula-box:focus {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
 
-.data-table tbody tr:hover { background-color: rgba(60, 106, 229, 0.05); }
-.data-table tbody tr:last-child td,
-.data-table tbody tr:last-child th { border-bottom: none; }
-.data-table tfoot th,
-.data-table tfoot td { padding: 0.65rem 0.75rem; border-top: 2px solid var(--color-gray-400); font-weight: 600; background-color: var(--color-gray-50); }
-.data-table th:first-child,
-.data-table td:first-child { text-align: left; }
-.data-table th:not(:first-child),
-.data-table td:not(:first-child) { text-align: right; }
-.data-table:focus-visible { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; }
+.model-equations-grid {
+  display: grid;
+  gap: 1rem;
+}
 
-.table-note { font-size: 0.75rem; color: var(--color-gray-600); margin-top: 0.5rem; padding: 0.5rem 1rem; font-style: italic; }
-.mobile-abbr { display: none; }
+/* --- Chart a11y / focus --- */
+.chart-wrapper:focus-visible {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
 
-/* Tooltips */
-.data-table td[data-tooltip]                         { cursor: help; position: relative; }
+.chart-bar-button {
+  position: absolute;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  z-index: 20;
+}
+
+.chart-bar-button:focus {
+  outline: 3px solid var(--color-blue-interactive);
+  outline-offset: -3px;
+  background: rgba(60, 106, 229, 0.1);
+}
+
+.chart-bar-button:hover {
+  background: rgba(60, 106, 229, 0.05);
+}
+
+.toggle-btn:focus-visible,
+.model-btn:focus-visible {
+  outline: 3px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+.validation-summary:focus {
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+.force-table #chart-view-btn,
+.force-table #view-chart-btn {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* --- Table caption + tooltips --- */
+.data-table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.data-table td[data-tooltip] {
+  cursor: help;
+  position: relative;
+}
+
 .data-table td[data-tooltip]:hover,
-.data-table td[data-tooltip]:focus                   { background-color: var(--color-gray-100); }
+.data-table td[data-tooltip]:focus {
+  background-color: var(--color-gray-100);
+}
+
 .data-table td[data-tooltip]::before {
   content: attr(data-tooltip);
   position: absolute;
@@ -810,213 +1950,96 @@ math[display="block"] { display: block; text-align: center; margin: 0.5em auto; 
   width: max-content;
   max-width: 18rem;
   text-align: left;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
 }
+
 .data-table td:first-child[data-tooltip]::before,
-.data-table td:nth-child(2)[data-tooltip]::before   { left: 0; transform: translateX(0); }
+.data-table td:nth-child(2)[data-tooltip]::before {
+  left: 0;
+  transform: translateX(0);
+}
+
 .data-table td:last-child[data-tooltip]::before,
-.data-table td:nth-last-child(2)[data-tooltip]::before { left: auto; right: 0; transform: translateX(0); }
+.data-table td:nth-last-child(2)[data-tooltip]::before {
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+}
+
 .data-table td[data-tooltip]:hover::before,
-.data-table td[data-tooltip]:focus::before           { opacity: 1; visibility: visible; }
+.data-table td[data-tooltip]:focus::before {
+  opacity: 1;
+  visibility: visible;
+}
+
 .data-table td[data-tooltip]::after {
   content: '';
   position: absolute;
   bottom: calc(100% + 2px);
   left: 50%;
   transform: translateX(-50%);
-  width: 0; height: 0;
+  width: 0;
+  height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-top: 6px solid var(--color-gray-900);
   z-index: 1001;
-  opacity: 0; visibility: hidden;
+  opacity: 0;
+  visibility: hidden;
   transition: opacity 0.15s ease-in-out, visibility 0.15s ease-in-out;
 }
+
 .data-table td:first-child[data-tooltip]::after,
-.data-table td:nth-child(2)[data-tooltip]::after     { left: 1rem; transform: translateX(0); }
+.data-table td:nth-child(2)[data-tooltip]::after {
+  left: 1rem;
+  transform: translateX(0);
+}
+
 .data-table td:last-child[data-tooltip]::after,
-.data-table td:nth-last-child(2)[data-tooltip]::after { left: auto; right: 1rem; transform: translateX(0); }
+.data-table td:nth-last-child(2)[data-tooltip]::after {
+  left: auto;
+  right: 1rem;
+  transform: translateX(0);
+}
+
 .data-table td[data-tooltip]:hover::after,
-.data-table td[data-tooltip]:focus::after             { opacity: 1; visibility: visible; }
-
-/* ==========================================================================
-   13. RESPONSIVE TABLE — CARD LAYOUT
-   ========================================================================== */
-@media (max-width: 768px) {
-  .table-card-layout .data-table,
-  .table-card-layout .data-table thead,
-  .table-card-layout .data-table tbody,
-  .table-card-layout .data-table th,
-  .table-card-layout .data-table td,
-  .table-card-layout .data-table tr { display: block; }
-  .table-card-layout .data-table thead { display: none; }
-  .table-card-layout .data-table tbody { display: flex; flex-direction: column; gap: 0.5rem; }
-  .table-card-layout .data-table tr { display: block; background: white; border: 1px solid var(--color-gray-200); border-radius: 0.5rem; padding: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; margin-bottom: 0.5rem; }
-  .table-card-layout .data-table tr:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
-  .table-card-layout .data-table td[data-label]:first-child { font-size: 0.9375rem; font-weight: 700; color: var(--color-primary-dark-blue); padding: 0 0 0.5rem 0; margin-bottom: 0.5rem; border-bottom: 2px solid var(--color-gray-200); text-align: left; display: block; }
-  .table-card-layout .data-table td[data-label]:not(:first-child) { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--color-gray-100); gap: 0.375rem; flex-wrap: nowrap; }
-  .table-card-layout .data-table td[data-label]:not(:first-child):last-child { border-bottom: none; padding-bottom: 0; }
-  .table-card-layout .data-table td[data-label]:not(:first-child)::before { content: attr(data-label); font-weight: 600; color: var(--color-gray-700); font-size: 0.8125rem; flex: 0 0 auto; min-width: 0; max-width: 40%; line-height: 1.3; word-wrap: break-word; overflow-wrap: break-word; }
-  .table-card-layout .data-table td[data-label]:not(:first-child) span { font-weight: 600; color: var(--color-gray-900); white-space: normal; flex-shrink: 0; flex-grow: 1; text-align: right; font-size: 0.875rem; word-break: break-word; min-width: 0; }
-  .mobile-abbr { display: inline; font-weight: 700; font-size: 0.8125rem; }
-  .mobile-abbr::before { content: " ("; color: var(--color-gray-700); font-weight: 600; }
-  .mobile-abbr::after  { content: ")"; color: var(--color-gray-700); font-weight: 600; }
-  .table-card-layout .data-table tfoot          { display: block; margin-top: 0.75rem; }
-  .table-card-layout .data-table tfoot tr       { background: var(--color-gray-50); border: 2px solid var(--color-gray-300); padding: 0.75rem; margin-bottom: 0.75rem; }
-  .table-card-layout .data-table tfoot th[scope="row"] { font-size: 1rem; font-weight: 700; color: var(--color-gray-800); padding: 0 0 0.75rem 0; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-gray-300); display: block; }
-  .table-card-layout .data-table tfoot td       { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-gray-200); }
-  .table-card-layout .data-table tfoot td:last-child { border-bottom: none; padding-bottom: 0; }
-  .table-card-layout .data-table tfoot td::before { content: attr(data-label); font-weight: 600; color: var(--color-gray-700); font-size: 0.875rem; }
-  .table-card-layout .data-table tfoot td strong { font-size: 1.125rem; font-weight: 700; }
-
-  @media (max-width: 400px) {
-    .table-card-layout .data-table tr { width: 100%; padding: 0; }
-    .table-card-layout .data-table td[data-label]:first-child { font-size: 0.9375rem; padding: 0.5rem 0.625rem; }
-    .table-card-layout .data-table td[data-label]:not(:first-child) { padding: 0.375rem 0.625rem; gap: 0.25rem; font-size: 0.8125rem; }
-    .table-card-layout .data-table td[data-label]:not(:first-child)::before { font-size: 0.75rem; max-width: 40%; }
-    .table-card-layout .data-table td[data-label]:not(:first-child) span { font-size: 0.8125rem; }
-  }
-
-  @media (max-width: 340px) {
-    .table-card-layout .data-table tr { width: 100%; }
-    .table-card-layout .data-table td[data-label]:first-child { font-size: 0.875rem; padding: 0.375rem 0.5rem; }
-    .table-card-layout .data-table td[data-label]:not(:first-child) { padding: 0.25rem 0.5rem; gap: 0.25rem; font-size: 0.75rem; }
-    .table-card-layout .data-table td[data-label]:not(:first-child)::before { font-size: 0.6875rem; max-width: 38%; line-height: 1.2; }
-    .table-card-layout .data-table td[data-label]:not(:first-child) span { font-size: 0.75rem; letter-spacing: -0.02em; }
-  }
+.data-table td[data-tooltip]:focus::after {
+  opacity: 1;
+  visibility: visible;
 }
 
-/* ==========================================================================
-   14. EXPANDABLE TABLE ROWS
-   ========================================================================== */
-.year-row   { cursor: default; }
-.expand-btn {
-  background: none; border: none; color: var(--color-blue-interactive);
-  cursor: pointer; padding: 0.25rem 0.35rem; margin-right: 0.25rem;
-  font-size: 0.875rem; vertical-align: middle; display: inline-flex;
-  align-items: center; transition: color 0.2s ease; line-height: 1;
-  min-width: 44px; min-height: 44px;
+/* Hide mobile abbreviations on desktop (mortgage table) */
+.mobile-abbr {
+  display: none;
 }
-.expand-btn:hover  { color: var(--color-primary-dark-blue); }
-.expand-btn:focus  { outline: 2px solid var(--color-blue-interactive); outline-offset: 2px; border-radius: 2px; }
-.expand-icon       { display: inline-block; width: 0.875rem; text-align: center; font-size: 0.75rem; }
-.month-row         { background-color: var(--color-gray-50); font-size: 0.875rem; }
-.month-row td      { padding-top: 0.5rem; padding-bottom: 0.5rem; border-top: 1px solid var(--color-gray-200); }
-.month-cell        { padding-left: 2.5rem !important; color: var(--color-gray-600); font-style: italic; font-size: 0.8125rem; }
 
-@media (max-width: 768px) { .expand-btn { padding: 0.5rem; } .month-cell { padding-left: 1.5rem !important; } }
-
-/* ==========================================================================
-   15. VALIDATION & ERROR HANDLING
-   ========================================================================== */
-.validation-summary {
-  margin-top: 0.75rem;
-  padding: 1rem;
-  background-color: var(--color-red-50);
-  border: 2px solid var(--color-red-500);
-  border-left: 4px solid var(--color-red-700);
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 4px rgba(185, 28, 28, 0.1);
+/* Dim results when validation fails */
+.has-validation-errors .card-content {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
 }
-.validation-summary:focus { outline: 3px solid var(--color-red-700); outline-offset: 2px; }
-.validation-title {
-  color: var(--color-red-800);
-  font-weight: 700;
-  font-size: 0.9375rem;
-  margin-bottom: 0.625rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-/* Item 7: using plain Unicode warning sign to avoid encoding corruption */
-.validation-title::before { content: "\26A0"; font-size: 1.25rem; line-height: 1; }
-.validation-summary ul    { list-style: none; padding: 0; margin: 0; }
-.validation-summary li    { color: var(--color-red-800); font-size: 0.875rem; padding-left: 1.5rem; position: relative; margin-bottom: 0.5rem; line-height: 1.5; }
-.validation-summary li:last-child   { margin-bottom: 0; }
-.validation-summary li::before      { content: "\2022"; position: absolute; left: 0.5rem; font-weight: bold; color: var(--color-red-700); }
 
-.has-validation-errors .card-content { opacity: 0.5; pointer-events: none; position: relative; }
 .has-validation-errors .card-content::before {
   content: 'Waiting for valid inputs...';
-  position: absolute; top: 50%; left: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   transform: translate(-50%, -50%);
-  background: var(--color-gray-900); color: white;
-  padding: 0.75rem 1.5rem; border-radius: 0.5rem;
-  font-weight: 600; z-index: 10; white-space: normal; text-align: center;
-  max-width: min(22rem, calc(100% - 2rem)); box-sizing: border-box;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
-/* ==========================================================================
-   16. UTILITY CLASSES
-   ========================================================================== */
-.text-sm { font-size: 0.875rem; }
-.text-xs { font-size: 0.75rem; }
-.text-lg { font-size: 1.125rem; }
-.text-center  { text-align: center; }
-.text-left    { text-align: left; }
-.text-right   { text-align: right; }
-.font-bold    { font-weight: 700; }
-.font-semibold{ font-weight: 600; }
-.font-medium  { font-weight: 500; }
-.text-blue      { color: var(--color-blue-interactive); }
-.text-purple    { color: var(--color-purple-bold); }
-.text-orange    { color: var(--color-orange-deep); }
-.text-green     { color: var(--color-green-data); }
-.text-teal      { color: var(--color-teal-data); }
-.text-dark-blue { color: var(--color-primary-dark-blue); }
-.text-gray-500  { color: var(--color-gray-500); }
-.text-gray-700  { color: var(--color-gray-700); }
-.text-gray-800  { color: var(--color-gray-800); }
-.text-red-500   { color: var(--color-red-500); }
-.text-red-800   { color: var(--color-red-800); }
-.bg-blue   { background-color: var(--color-bg-blue); }
-.bg-purple { background-color: var(--color-bg-purple); }
-.bg-orange { background-color: var(--color-bg-orange); }
-.bg-green  { background-color: var(--color-bg-green); }
-.bg-teal   { background-color: var(--color-bg-teal); }
-.border-blue   { border-color: var(--color-blue-interactive); }
-.border-purple { border-color: var(--color-purple-bold); }
-.border-orange { border-color: var(--color-orange-deep); }
-.border-green  { border-color: var(--color-green-data); }
-.border-teal   { border-color: var(--color-teal-data); }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 0.75rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 0.75rem; }
-.mt-4 { margin-top: 1rem; }
-.ml-1 { margin-left: 0.25rem; }
-.ml-2 { margin-left: 0.5rem; }
-
-/* ==========================================================================
-   17. PRINT STYLES
-   ========================================================================== */
-@media print {
-  .skip-link, .button-group, .model-selector, .view-controls, .toggle-section-btn { display: none; }
-  .card { break-inside: avoid; page-break-inside: avoid; box-shadow: none; border: 1px solid var(--color-gray-800); }
-  #chart-container { display: none; }
-  #table-container { display: block !important; }
-}
-
-/* ==========================================================================
-   18. REDUCED MOTION — WCAG 2.3.3
-       Item 6: all CSS transitions and animations are disabled or near-zero
-   ========================================================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+  background: var(--color-gray-900);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  z-index: 10;
+  white-space: normal;
+  text-align: center;
+  max-width: min(22rem, calc(100% - 2rem));
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
