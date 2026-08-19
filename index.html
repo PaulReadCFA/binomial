@@ -9,7 +9,7 @@
   <!-- Lato font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="cfa-base.css">
@@ -192,27 +192,31 @@
 
       <!-- Card 2: Visualizer -->
       <section class="card" id="visualizer" tabindex="-1">
-        <div class="card-header-with-controls">
-          <h4 class="card-title">Binomial Trees</h4>
-          <div class="button-group">
-            <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true" aria-label="View chart">Chart</button>
-            <button id="view-table-btn" class="toggle-btn" aria-pressed="false" aria-label="View table">Table</button>
-          </div>
-        </div>
+        <h4 class="card-title">Binomial Trees</h4>
         <div class="card-content">
 
           <!-- Legend outside chart/table panes so toggling views does not collapse this row -->
-          <div role="region" aria-label="Chart legend">
-            <div class="legend" id="chart-legend" role="list" aria-label="Legend">
-              <span class="legend-item" role="listitem">
-                <span class="legend-color" style="background-color: #047857;"></span>
-                Up path
-              </span>
-              <span class="legend-item" role="listitem">
-                <span class="legend-color" style="background-color: #b91c1c;"></span>
-                Down path
-              </span>
+          <div class="view-controls">
+            <div role="region" aria-label="Chart legend">
+              <div class="legend" id="chart-legend" role="list" aria-label="Legend">
+                <span class="legend-item" role="listitem">
+                  <span class="legend-color" style="background-color: #047857;"></span>
+                  Up path
+                </span>
+                <span class="legend-item" role="listitem">
+                  <span class="legend-color" style="background-color: #b91c1c;"></span>
+                  Down path
+                </span>
+              </div>
             </div>
+
+            <div class="button-group" role="toolbar">
+              <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true" aria-label="View chart">Chart</button>
+              <button id="view-table-btn" class="toggle-btn" aria-pressed="false" aria-label="View table">Table</button>
+            </div>
+            <p id="chart-helper-text" class="text-xs text-gray-500" style="display: none; margin-top: 0.5rem;">
+              Chart view is not available at narrow screen widths. Showing table view.
+            </p>
           </div>
 
           <!-- Chart view -->

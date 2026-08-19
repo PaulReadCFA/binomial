@@ -22,9 +22,12 @@ let currentView = 'chart';
 // Detect reduced-motion preference once at startup
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// System font stack for chart fonts
-const CHART_FONT_FAMILY = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif";
-
+/** Curriculum chart label convention: 13px / 600 / Lato */
+const CHART_FONT = {
+  family: "'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  size: 13,
+  weight: '600'
+};
 // Colour coding — consistent across all areas of this EE:
 //   up-state values  → green  (Su, Cu, Pu)
 //   down-state values → red   (Sd, Cd, Pd)
@@ -91,19 +94,24 @@ function applyViewportMode() {
   const chartBtn = $('#view-chart-btn');
   const tableBtn = $('#view-table-btn');
   if (!chartBtn || !tableBtn) return;
+  const helper = $('#chart-helper-text');
 
   if (isNarrow()) {
     chartBtn.disabled = true;
     chartBtn.setAttribute('aria-disabled', 'true');
-    chartBtn.title = 'Chart not available at this screen width — use the Table view';
+    chartBtn.removeAttribute('title');
+    chartBtn.setAttribute('aria-describedby', 'chart-helper-text');
+    if (helper) helper.style.display = 'block';
     switchView('table');
   } else {
     chartBtn.disabled = false;
     chartBtn.removeAttribute('aria-disabled');
-    chartBtn.title = '';
+    chartBtn.removeAttribute('title');
+    chartBtn.removeAttribute('aria-describedby');
     tableBtn.disabled = false;
     tableBtn.removeAttribute('aria-disabled');
-    tableBtn.title = '';
+    tableBtn.removeAttribute('title');
+    if (helper) helper.style.display = 'none';
     const chartViewEl = $('#chart-view');
     if (state.optionCalculations && currentView === 'chart' && chartViewEl && chartViewEl.style.display !== 'none') {
       renderCharts(state.optionCalculations, state);
@@ -699,12 +707,12 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
         // Asset: neutral at t=0, green/red at t=1. Call/put: option colour at t=0; path colour at t=1 (matches lines).
         color: resolvedLabelColor,
         font: {
-          weight: '500',
-          size: 14,
+          weight: CHART_FONT.weight,
+          size: CHART_FONT.size,
           // No style: 'italic' here — italic is conveyed by the Unicode
           // math-italic letter in the label string itself (e.g. 𝑆, 𝐶, 𝑃),
           // keeping the number/equals/subscript portions upright.
-          family: CHART_FONT_FAMILY
+          family: CHART_FONT.family
         },
         backgroundColor: () => 'rgba(255, 255, 255, 0.9)',
         borderColor: resolvedLabelColor,
@@ -756,11 +764,7 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           // No style: 'italic' — the Unicode italic t (\u{1D461}) in the
           // label string handles the italic appearance without italicising
           // the numerals, equals sign, and spaces.
-          font: {
-            size: 14,
-            weight: '500',
-            family: CHART_FONT_FAMILY
-          }
+          font: CHART_FONT
         },
         grid: { color: '#e5e7eb', offset: true },
         offset: true
@@ -772,13 +776,13 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
           display: !hideYAxis,
           text: yLabel,
           color: '#374151',
-          font: { size: 14, weight: '600', family: CHART_FONT_FAMILY }
+          font: CHART_FONT
         },
         ticks: {
           display: !hideYAxis,
           callback: (v) => v.toFixed(2),
           color: '#374151',
-          font: { size: 14, weight: '500', family: CHART_FONT_FAMILY }
+          font: CHART_FONT
         },
         grid: { color: '#e5e7eb' }
       }
