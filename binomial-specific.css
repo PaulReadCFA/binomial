@@ -1,5 +1,12 @@
 /* Binomial Option Pricing Calculator Specific Styles */
 
+/* Cards 1 & 2 — intro copy slightly below 1rem (matches Compound Interest exemplar). */
+#calculator .equation-intro,
+#equation-card .equation-intro {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
 /* Avoid horizontal nudge when document scrollbar appears/disappears (chart vs table height). */
 html {
   scrollbar-gutter: stable;
