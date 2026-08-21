@@ -30,6 +30,35 @@ export function scaledChartPx(px, rootPx = getRootFontPx()) {
 }
 
 /**
+ * Kern (px) that cancels math-italic sidebearings inside roman parentheses.
+ * Use with fillTightParenVar so canvas titles match legend "Name (r)".
+ */
+export function mathItalicParenKernPx(rootPx = getRootFontPx()) {
+  return scaledChartPx(2, rootPx);
+}
+
+/**
+ * Draw `before + italic + after` (e.g. "Required return (" + 𝑟 + ") %")
+ * with tight parentheses. Caller should set font, fillStyle, and textBaseline.
+ * `textAlign` is ignored; pass `align: 'center'` to center on `x`.
+ * @returns {number} advance width after kerning
+ */
+export function fillTightParenVar(ctx, before, italic, after, x, y, align = 'left') {
+  const kern = mathItalicParenKernPx();
+  const wBefore = ctx.measureText(before).width;
+  const wVar = ctx.measureText(italic).width;
+  const width = wBefore + wVar + ctx.measureText(after).width - 2 * kern;
+  const left = align === 'center' ? x - width / 2 : x;
+  const prevAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  ctx.fillText(before, left, y);
+  ctx.fillText(italic, left + wBefore - kern, y);
+  ctx.fillText(after, left + wBefore - kern + wVar - kern, y);
+  ctx.textAlign = prevAlign;
+  return width;
+}
+
+/**
  * @param {'curriculum'|'exemplar'} [profile='curriculum']
  */
 export function getChartTypography(profile = 'curriculum') {

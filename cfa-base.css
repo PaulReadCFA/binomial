@@ -1122,6 +1122,24 @@ kbd {
   border: none;
 }
 
+/* Unicode math-italic letters have wide sidebearings, which reads as
+   Name ( r ). Wrap legend parentheticals so they stay Name (r). */
+.legend-var-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  vertical-align: baseline;
+}
+
+.legend-paren {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.legend-var {
+  margin-inline: -0.08em;
+}
+
 
 /* ==========================================================================
    10. DATA TABLES
