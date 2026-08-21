@@ -12,6 +12,7 @@ import {
   NUMERIC_INPUT_MAX_CHARS,
   announceToScreenReader
 } from './binomial-modules/utils.js';
+import { getChartTypography } from './chart-typography.js';
 
 // Register Chart.js datalabels plugin
 Chart.register(ChartDataLabels);
@@ -22,12 +23,8 @@ let currentView = 'chart';
 // Detect reduced-motion preference once at startup
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Curriculum chart label convention: 13px / 600 / Lato */
-const CHART_FONT = {
-  family: "'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-  size: 13,
-  weight: '600'
-};
+/** Curriculum chart label convention: 13px / 600 / Lato at the 18px design root. */
+const CHART_FONT = { family: '', size: 13, weight: '600' };
 // Colour coding — consistent across all areas of this EE:
 //   up-state values  → green  (Su, Cu, Pu)
 //   down-state values → red   (Sd, Cd, Pd)
@@ -417,68 +414,73 @@ function renderDynamicEquation(calc, params) {
   }
 }
 
-// Table — colour coding applied; S0 row uses neutral (no colour on S0 symbol)
+// Table-safe colours are darker than the chart fills so they retain AA
+// contrast on both white and striped rows.
 function renderTable(calc, params) {
   const tbody = $('#table-body');
   if (!tbody) return;
 
   tbody.innerHTML = `
     <tr>
-      <td><strong>Asset Price (<i>S</i><sub>0</sub>)</strong></td>
+      <th scope="row">Asset Price (<i>S</i><sub>0</sub>)</th>
       <td>${params.s0.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Up-State Price (<span style="color: ${COLOR.up};"><i>S</i><sub>u</sub></span>)</strong></td>
-      <td>${params.su.toFixed(2)}</td>
+      <th scope="row" class="table-var-5">Up-State Price (<i>S</i><sub>u</sub>)</th>
+      <td class="table-var-5">${params.su.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Down-State Price (<span style="color: ${COLOR.down};"><i>S</i><sub>d</sub></span>)</strong></td>
-      <td>${params.sd.toFixed(2)}</td>
+      <th scope="row" class="table-var-red">Down-State Price (<i>S</i><sub>d</sub>)</th>
+      <td class="table-var-red">${params.sd.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Strike Price (<i>K</i>)</strong></td>
+      <th scope="row">Strike Price (<i>K</i>)</th>
       <td>${params.strike.toFixed(2)}</td>
     </tr>
     <tr>
-      <td><strong>Risk-Free Rate (<i>r</i>)</strong></td>
+      <th scope="row">Risk-Free Rate (<i>r</i>)</th>
       <td>${params.riskFreeRate.toFixed(2)}%</td>
     </tr>
-    <tr style="background-color: #eff6ff;">
-      <td><strong>Call Option Price (<span style="color: ${COLOR.call};"><i>C</i><sub>0</sub></span>)</strong></td>
-      <td><strong style="color: ${COLOR.call};">${calc.C0.toFixed(2)}</strong></td>
+    <tr class="table-section-start">
+      <th scope="row" class="table-var-2">Call Option Price (<i>C</i><sub>0</sub>)</th>
+      <td class="table-var-2"><strong>${calc.C0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call Hedge Ratio (HR<sub><i>C</i></sub>)</td>
-      <td>${formatWithUnicodeMinus(calc.HRc, 4)}</td>
+      <th scope="row" class="table-submetric table-var-2">Call Hedge Ratio (HR<sub><i>C</i></sub>)</th>
+      <td class="table-var-2">${formatWithUnicodeMinus(calc.HRc, 4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call up payoff (<span style="color: ${COLOR.call};"><i>C</i><sub>u</sub></span>)</td>
-      <td>${calc.Cu.toFixed(2)}</td>
+      <th scope="row" class="table-submetric table-var-2">Call up payoff (<i>C</i><sub>u</sub>)</th>
+      <td class="table-var-2">${calc.Cu.toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Call down payoff (<span style="color: ${COLOR.call};"><i>C</i><sub>d</sub></span>)</td>
-      <td>${calc.Cd.toFixed(2)}</td>
+      <th scope="row" class="table-submetric table-var-2">Call down payoff (<i>C</i><sub>d</sub>)</th>
+      <td class="table-var-2">${calc.Cd.toFixed(2)}</td>
     </tr>
-    <tr style="background-color: #faf5ff;">
-      <td><strong>Put Option Price (<span style="color: ${COLOR.put};"><i>P</i><sub>0</sub></span>)</strong></td>
-      <td><strong style="color: ${COLOR.put};">${calc.P0.toFixed(2)}</strong></td>
-    </tr>
-    <tr>
-      <td style="padding-left: 2rem;">Put Hedge Ratio (HR<sub><i>P</i></sub>)</td>
-      <td>${formatWithUnicodeMinus(calc.HRp, 4)}</td>
+    <tr class="table-section-start">
+      <th scope="row" class="table-var-3">Put Option Price (<i>P</i><sub>0</sub>)</th>
+      <td class="table-var-3"><strong>${calc.P0.toFixed(2)}</strong></td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put up payoff (<span style="color: ${COLOR.put};"><i>P</i><sub>u</sub></span>)</td>
-      <td>${calc.Pu.toFixed(2)}</td>
+      <th scope="row" class="table-submetric table-var-3">Put Hedge Ratio (HR<sub><i>P</i></sub>)</th>
+      <td class="table-var-3">${formatWithUnicodeMinus(calc.HRp, 4)}</td>
     </tr>
     <tr>
-      <td style="padding-left: 2rem;">Put down payoff (<span style="color: ${COLOR.put};"><i>P</i><sub>d</sub></span>)</td>
-      <td>${calc.Pd.toFixed(2)}</td>
+      <th scope="row" class="table-submetric table-var-3">Put up payoff (<i>P</i><sub>u</sub>)</th>
+      <td class="table-var-3">${calc.Pu.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <th scope="row" class="table-submetric table-var-3">Put down payoff (<i>P</i><sub>d</sub>)</th>
+      <td class="table-var-3">${calc.Pd.toFixed(2)}</td>
     </tr>
   `;
 }
 
 function renderCharts(calc, params) {
+  const t = getChartTypography('curriculum');
+  CHART_FONT.family = t.font.family;
+  CHART_FONT.size = t.font.size;
+  CHART_FONT.weight = t.font.weight;
   renderAssetChart(calc, params);
   renderCallChart(calc, params);
   renderPutChart(calc, params);

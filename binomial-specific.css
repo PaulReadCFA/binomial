@@ -110,80 +110,14 @@ html {
   margin-top: 1rem;
 }
 
-/* Input overrides — must re-state here since this file loads after cfa-base.css
-   and must not revert the accessibility improvements made there. */
-.input-group-inline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1.25rem 0.75rem;  /* matches cfa-base.css — do not tighten further */
-}
-
-.input-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;          /* matches cfa-base.css */
-  white-space: nowrap;
-}
-
-.input-label-inline {
-  font-size: 0.875rem;
-  color: var(--color-gray-700);
-  min-width: fit-content; /* matches cfa-base.css — no fixed width */
-  font-weight: 500;
-}
-
-.input-with-suffix-inline {
-  display: flex;
-  align-items: center;
-  width: 11rem;
-  position: relative;
-}
-
-/* Corrected border: use --color-input-border (#8b93a7) not --color-gray-300 (#d1d5db) */
-.input-field-inline {
-  flex: 1;
-  width: 100%;
-  padding: 0.4rem 0.5rem;
-  padding-left: 3.75rem;
-  padding-right: 1.75rem;
-  border: 1px solid var(--color-input-border);
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  text-align: right;
-  box-sizing: border-box;
-  min-height: 44px;
-}
-
-.input-prefix {
-  font-weight: 500;
-  color: var(--color-gray-500);
-  white-space: nowrap;
-  font-size: 0.875rem;
-  position: absolute;
-  left: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.input-suffix-inline {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gray-500);
-  pointer-events: none;
-  text-align: right;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
+/* Data entry comes from cfa-base.css. Only the label variable colours
+   are binomial-specific: up state green, down state red, others neutral. */
+.label-var-up   { color: var(--color-up-path); }
+.label-var-down { color: var(--color-down-path); }
 
 #calculator .input-section {
   max-width: 100%;
   min-width: 0;
-  overflow-x: hidden;
 }
 
 #calculator .validation-summary {
@@ -191,84 +125,7 @@ html {
   margin-bottom: 0.75rem;
 }
 
-/* Calculator inputs: stable grid (not flex-wrap) so rows/columns do not reflow when views below change. */
-#calculator .input-group-inline {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 1.25rem;
-  row-gap: 1rem;
-  align-items: start;
-}
-
-#calculator .input-inline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(9.5rem, 11rem);
-  column-gap: 0.75rem;
-  align-items: center;
-  min-width: 0;
-  width: 100%;
-  white-space: normal;
-}
-
-#calculator .input-label-inline {
-  min-width: 0;
-  white-space: normal;
-  line-height: 1.35;
-}
-
-#calculator .input-with-suffix-inline {
-  width: 100%;
-  max-width: 11rem;
-  justify-self: end;
-}
-
-@media (max-width: 768px) {
-  #calculator .input-group-inline {
-    grid-template-columns: 1fr;
-  }
-
-  #calculator .input-with-suffix-inline {
-    justify-self: start;
-    max-width: 100%;
-  }
-}
-
 @media (max-width: 640px) {
-  .input-group-inline {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  .input-inline {
-    width: 100%;
-    max-width: 100%;
-    flex-wrap: wrap;
-    white-space: normal;
-    align-items: flex-start;
-    box-sizing: border-box;
-  }
-  .input-label-inline {
-    flex: 1 1 100%;
-    max-width: 100%;
-    min-width: 0;
-    white-space: normal;
-  }
-  .input-with-suffix-inline {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  #calculator .input-inline {
-    grid-template-columns: 1fr;
-    justify-items: stretch;
-  }
-
-  #calculator .input-with-suffix-inline {
-    justify-self: stretch;
-    max-width: 100%;
-  }
-
   .binomial-chart-container {
     height: 16rem;
   }

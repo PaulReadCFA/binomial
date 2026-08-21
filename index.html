@@ -96,14 +96,14 @@
               <!-- S0: current price — neutral colour (not green; green is reserved for up-state) -->
               <div class="input-inline">
                 <label for="s0" class="input-label-inline">
-                  Current price (<i>S</i><sub>0</sub>):
+                  Current price (𝑆<sub>0</sub>):
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">USD</span>
+                  <span class="input-prefix-inline" aria-hidden="true">USD</span>
                   <input
                     type="number"
                     id="s0"
-                    class="input-field-inline"
+                    class="input-field-inline input-with-prefix"
                     inputmode="decimal"
                     min="0" step="1" value="40">
                 </div>
@@ -112,14 +112,14 @@
               <!-- Su: up-state price — green -->
               <div class="input-inline">
                 <label for="su" class="input-label-inline">
-                  Up-state price <span style="color: #047857;">(<i>S</i><sub>u</sub>)</span>:
+                  Up-state price (<span class="label-var-up">𝑆<sub>𝑢</sub></span>):
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">USD</span>
+                  <span class="input-prefix-inline" aria-hidden="true">USD</span>
                   <input
                     type="number"
                     id="su"
-                    class="input-field-inline"
+                    class="input-field-inline input-with-prefix"
                     inputmode="decimal"
                     min="0" step="1" value="56">
                 </div>
@@ -128,14 +128,14 @@
               <!-- Sd: down-state price — red -->
               <div class="input-inline">
                 <label for="sd" class="input-label-inline">
-                  Down-state price <span style="color: #b91c1c;">(<i>S</i><sub>d</sub>)</span>:
+                  Down-state price (<span class="label-var-down">𝑆<sub>𝑑</sub></span>):
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">USD</span>
+                  <span class="input-prefix-inline" aria-hidden="true">USD</span>
                   <input
                     type="number"
                     id="sd"
-                    class="input-field-inline"
+                    class="input-field-inline input-with-prefix"
                     inputmode="decimal"
                     min="0" step="1" value="32">
                 </div>
@@ -144,14 +144,14 @@
               <!-- K: strike price — neutral -->
               <div class="input-inline">
                 <label for="strike" class="input-label-inline">
-                  Strike price (<i>K</i>):
+                  Strike price (𝐾):
                 </label>
                 <div class="input-with-suffix-inline">
-                  <span class="input-prefix">USD</span>
+                  <span class="input-prefix-inline" aria-hidden="true">USD</span>
                   <input
                     type="number"
                     id="strike"
-                    class="input-field-inline"
+                    class="input-field-inline input-with-prefix"
                     inputmode="decimal"
                     min="0" step="1" value="50">
                 </div>
@@ -160,7 +160,7 @@
               <!-- r: risk-free rate — neutral, sentence case -->
               <div class="input-inline">
                 <label for="risk-free-rate" class="input-label-inline">
-                  Risk-free rate (<i>r</i>):
+                  Risk-free rate (𝑟):
                 </label>
                 <div class="input-with-suffix-inline">
                   <input
@@ -274,9 +274,9 @@
 
           <!-- Table view (hidden by default) -->
           <div id="table-view" style="display: none;">
-            <div class="table-wrapper">
+            <div class="table-wrapper" role="region" aria-label="Binomial option pricing table" tabindex="0">
               <table class="data-table" id="binomial-table">
-                <caption>Binomial Option Pricing Values</caption>
+                <caption class="sr-only">Binomial option pricing values</caption>
                 <thead>
                   <tr>
                     <th scope="col">Metric</th>

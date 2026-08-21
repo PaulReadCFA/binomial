@@ -424,6 +424,19 @@
   --var-7: #646464;
   --var-7-bg: var(--color-gray-100); /* chip bg: light grey */
 
+  /* Table-safe thematic text colours.
+     Table rows alternate between white and --surface-stripe (#E6E6EF), so
+     the equation colours that only pass on white cannot be reused directly.
+     Every token below passes WCAG AA (4.5:1+) on white, stripe, and hover. */
+  --table-var-1: #06005A; /* 14.65:1 minimum — price / primary */
+  --table-var-2: #2D59C4; /* 5.07:1 minimum  — payment / blue */
+  --table-var-3: #5A20CC; /* 6.74:1 minimum  — rate / purple */
+  --table-var-4: #006180; /* 5.60:1 minimum  — time / teal */
+  --table-var-5: #07514F; /* 7.36:1 minimum  — growth / pine */
+  --table-var-6: #8B4513; /* 5.72:1 minimum  — result / orange */
+  --table-var-7: #646464; /* 4.77:1 minimum  — annotation */
+  --table-var-red: #991B1C; /* 6.18:1 minimum — down state / red */
+
 
   /* ──────────────────────────────────────────────────────────────────────
      D. UI INTERACTIVE COLOURS
@@ -561,7 +574,11 @@
 }
 
 html {
-  font-size: 18px; /* LDO: ≥14pt (~18px) readable text at 100% zoom */
+  /* LDO: >=14pt (~18px) readable text at 100% zoom. Expressed as a percentage
+     of the reader's own default, not a fixed 18px: an absolute px root ignores
+     a raised browser font-size preference, leaving page zoom as the only way to
+     enlarge text. 112.5% of the 16px default is the same 18px baseline. */
+  font-size: 112.5%;
   scroll-behavior: smooth;
 }
 
@@ -1022,10 +1039,63 @@ kbd {
 
 .table-wrapper,
 .table-scroll-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
   border-radius: 0.5rem;
   border: 1px solid var(--color-gray-200);
+  background: var(--surface-card);
+}
+
+.table-wrapper:focus-visible,
+.table-scroll-wrapper:focus-visible {
+  outline: 3px solid var(--color-blue-interactive);
+  outline-offset: 2px;
+}
+
+/* Between the card breakpoint and the table's natural width the scroll region
+   still applies. Force a persistent scrollbar there: macOS overlay scrollbars
+   stay invisible until the user already scrolls, which is exactly what makes
+   an overflowing table read as truncated data. Card mode sets overflow-x to
+   visible, so no scrollbar is drawn below 768px. */
+.table-wrapper,
+.table-scroll-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-400) var(--surface-subtle);
+}
+
+.table-wrapper::-webkit-scrollbar,
+.table-scroll-wrapper::-webkit-scrollbar {
+  height: 0.625rem;
+  -webkit-appearance: none;
+}
+
+.table-wrapper::-webkit-scrollbar-track,
+.table-scroll-wrapper::-webkit-scrollbar-track {
+  background: var(--surface-subtle);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb,
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: var(--color-gray-400);
+  border-radius: 0.3125rem;
+}
+
+/* Let the frame hug a content-sized table instead of drawing an empty box out
+   to the card edge. Wide tables still reach max-width, and card mode is
+   excluded so stacked rows keep the full width. Paired with the 48em card
+   breakpoint below — keep both in em so they switch at the same point. */
+@media (min-width: 48.0625em) {
+  .table-wrapper,
+  .table-scroll-wrapper {
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 .legend,
@@ -1056,14 +1126,22 @@ kbd {
 /* ==========================================================================
    10. DATA TABLES
    STRIPE RULE: --surface-stripe (#E6E6EF, Dark Blue 10%) is used for
-   alternating rows. Only --color-gray-800 or --cfa-dark-blue text
-   is permitted on striped rows. Do not colour table cell text with
-   any --var-* token.
+   alternating rows. Equation --var-* tokens remain white-only. The darker
+   --table-var-* family is explicitly tested on white, stripe, and hover and
+   may colour variable names and their associated values.
    ========================================================================== */
+/* Content-sized, not stretched. width:100% plus a min-width floor spread a
+   two-column table across the whole card, leaving a lane of white space
+   between the columns. Sizing to content keeps short tables narrow; wide ones
+   still use the full card because their content asks for it, and the wrapper
+   scrolls only when even the minimum content width will not fit. */
 .data-table {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 1rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
   background: var(--surface-card);
 }
 
@@ -1078,6 +1156,8 @@ kbd {
   top: 0;
   z-index: 10;
   font-size: 1rem;
+  line-height: 1.35;
+  vertical-align: bottom;
 }
 
 .data-table tbody td,
@@ -1085,6 +1165,32 @@ kbd {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--color-gray-200);
   color: var(--color-gray-800);
+  vertical-align: middle;
+}
+
+.data-table tbody th[scope="row"] {
+  font-weight: 600;
+}
+
+/* Thematic table text. Apply the same class to the variable in the header and
+   the associated .cell-value. Colour supplements labels; it never replaces
+   them as the only way to identify a series. */
+.data-table .table-var-1 { color: var(--table-var-1); }
+.data-table .table-var-2 { color: var(--table-var-2); }
+.data-table .table-var-3 { color: var(--table-var-3); }
+.data-table .table-var-4 { color: var(--table-var-4); }
+.data-table .table-var-5 { color: var(--table-var-5); }
+.data-table .table-var-6 { color: var(--table-var-6); }
+.data-table .table-var-7 { color: var(--table-var-7); }
+.data-table .table-var-red { color: var(--table-var-red); }
+
+.data-table tbody tr.table-section-start > * {
+  border-top: 2px solid var(--color-gray-300);
+}
+
+.data-table tbody th.table-submetric {
+  padding-left: 2rem;
+  font-weight: 400;
 }
 
 /* ✦ BRAND: Dark Blue 10% (#E6E6EF) for stripe.
@@ -1100,6 +1206,10 @@ kbd {
 
 /* ✦ BRAND: Bright Blue 10% (#EAF0FF) for hover */
 .data-table tbody tr:hover {
+  background-color: var(--surface-hover);
+}
+
+.data-table tbody tr:focus-within {
   background-color: var(--surface-hover);
 }
 
@@ -1134,15 +1244,63 @@ kbd {
   font-style: italic;
 }
 
-/* Responsive card-style table for narrow screens */
-@media (max-width: 768px) {
+/* --------------------------------------------------------------------------
+   NARROW-WIDTH TABLES — reflow to cards, never scroll sideways.
+
+   Requirement: no table content may sit off-screen behind a horizontal
+   scrollbar. Overlay scrollbars are invisible until scrolling starts, so a
+   scroll region reads as truncated data. At <=768px every table therefore
+   drops its min-width, and multi-column tables opt in to card stacking by
+   adding .table-card-layout to the wrapper.
+
+   The breakpoint is em, not px: em media queries track the reader's default
+   font size, so someone browsing at a 32px default gets cards on a 1280px
+   window instead of a table too wide to read. At the 16px default 48em is the
+   same 768px as before.
+
+   ACCESSIBILITY CONTRACT: display:block makes browsers discard the implicit
+   table roles, so renderers of stacked tables MUST emit explicit ARIA roles
+   (table / rowgroup / row / columnheader / rowheader / cell) and wrap each
+   cell value in <span class="cell-value">. thead is visually hidden rather
+   than display:none so the column headers stay in the accessibility tree.
+   See "Canonical data-table contract" in _shared/README.md.
+   -------------------------------------------------------------------------- */
+@media (max-width: 48em) {
+  /* No table may force horizontal overflow at narrow widths. */
+  .data-table {
+    min-width: 0;
+  }
+
+  /* Cards supply their own borders; the scroll frame would double them up. */
+  .table-card-layout {
+    overflow-x: visible;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
   .table-card-layout .data-table,
-  .table-card-layout .data-table thead,
   .table-card-layout .data-table tbody,
+  .table-card-layout .data-table tfoot,
+  .table-card-layout .data-table tr,
   .table-card-layout .data-table th,
-  .table-card-layout .data-table td,
-  .table-card-layout .data-table tr {
+  .table-card-layout .data-table td {
     display: block;
+  }
+
+  /* Visually hidden, not display:none: the ARIA roles map cells to these
+     column headers by position, so removing them would strip the labels
+     that screen reader users navigate by. */
+  .table-card-layout .data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   /* Table is display:block in card mode — caption must be block too or it collapses oddly */
@@ -1151,17 +1309,13 @@ kbd {
     width: 100%;
     box-sizing: border-box;
     caption-side: top;
-    padding: 0 0.5rem 0.75rem;
-    margin: 0 0 0.25rem;
-    font-size: 0.9375rem;
+    padding: 0 0 0.75rem;
+    margin: 0;
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.45;
     color: var(--color-gray-800);
     text-align: left;
-  }
-
-  .table-card-layout .data-table thead {
-    display: none;
   }
 
   .table-card-layout .data-table tbody {
@@ -1170,123 +1324,125 @@ kbd {
     gap: 0.5rem;
   }
 
-  /* No striping in card mode — each card is its own visual unit */
+  .table-card-layout .data-table tbody tr,
+  .table-card-layout .data-table tfoot tr {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--surface-card);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  /* Each card is its own visual unit, so stripes are dropped. */
   .table-card-layout .data-table tbody tr:nth-child(even),
   .table-card-layout .data-table tbody tr:nth-child(odd) {
     background: var(--surface-card);
   }
 
-  .table-card-layout .data-table tr {
-    display: block;
-    background: var(--surface-card);
-    border: 1px solid var(--color-gray-200);
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    margin-bottom: 0.5rem;
+  /* A bare "1.0" is meaningless as a card title, so first cells whose column
+     name is not already part of the value carry data-label to prefix it. */
+  .table-card-layout .data-table tbody th[scope="row"][data-label]::before,
+  .table-card-layout .data-table tbody td:first-child[data-label]::before {
+    content: attr(data-label) " ";
   }
 
-  .table-card-layout .data-table tr:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
-
-  .table-card-layout .data-table td[data-label]:first-child {
-    font-size: 0.9375rem;
+  /* Card title: the row header, or the first cell when there is no row header. */
+  .table-card-layout .data-table tbody th[scope="row"],
+  .table-card-layout .data-table tbody td:first-child {
+    font-size: 1rem;
     font-weight: 700;
     color: var(--cfa-dark-blue);   /* ✦ BRAND: Dark Blue */
-    padding: 0 0 0.5rem 0;
-    margin-bottom: 0.5rem;
+    padding: 0 0 0.5rem;
+    margin: 0 0 0.5rem;
     border-bottom: 2px solid var(--color-gray-200);
+    border-radius: 0;
     text-align: left;
-    display: block;
   }
 
-  .table-card-layout .data-table td[data-label]:not(:first-child) {
+  /* Remaining cells: column label left, value right. */
+  .table-card-layout .data-table tbody td:not(:first-child),
+  .table-card-layout .data-table tfoot td[data-label] {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    align-items: center;
-    padding: 0.35rem 0.5rem;
+    gap: 0.75rem;
+    padding: 0.3125rem 0;
     border-bottom: 1px solid var(--color-gray-100);
-    gap: 0.375rem;
-    flex-wrap: nowrap;
+    text-align: left;
   }
 
-  .table-card-layout .data-table td[data-label]:not(:first-child):last-child {
+  .table-card-layout .data-table tbody td:not(:first-child):last-child,
+  .table-card-layout .data-table tfoot td[data-label]:last-child {
     border-bottom: none;
     padding-bottom: 0;
   }
 
-  .table-card-layout .data-table td[data-label]:not(:first-child)::before {
+  .table-card-layout .data-table td[data-label]::before {
     content: attr(data-label);
-    font-weight: 600;
-    color: var(--color-gray-700);
-    font-size: 1rem;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     min-width: 0;
-    max-width: 40%;
-    line-height: 1.3;
-    word-wrap: break-word;
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: var(--color-gray-700);
     overflow-wrap: break-word;
   }
 
-  .table-card-layout .data-table td[data-label]:not(:first-child) span {
-    font-weight: 600;
-    color: var(--color-gray-900);
-    white-space: normal;
-    flex-shrink: 0;
-    flex-grow: 1;
+  /* One element per cell keeps <br> and stacked <div> content working:
+     bare text nodes would become sibling flex items and collapse onto one line.
+     The value never wraps — "−108.73" split across lines misreads as two
+     numbers — so the label absorbs the wrapping instead. */
+  .table-card-layout .data-table .cell-value {
+    flex: 0 0 auto;
     text-align: right;
-    font-size: 1rem;
-    word-break: break-word;
-    min-width: 0;
+    white-space: nowrap;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-gray-900);
   }
 
+  .table-card-layout .data-table .cell-value.table-var-1 { color: var(--table-var-1); }
+  .table-card-layout .data-table .cell-value.table-var-2 { color: var(--table-var-2); }
+  .table-card-layout .data-table .cell-value.table-var-3 { color: var(--table-var-3); }
+  .table-card-layout .data-table .cell-value.table-var-4 { color: var(--table-var-4); }
+  .table-card-layout .data-table .cell-value.table-var-5 { color: var(--table-var-5); }
+  .table-card-layout .data-table .cell-value.table-var-6 { color: var(--table-var-6); }
+  .table-card-layout .data-table .cell-value.table-var-7 { color: var(--table-var-7); }
+  .table-card-layout .data-table .cell-value.table-var-red { color: var(--table-var-red); }
+
   .table-card-layout .data-table tfoot {
-    display: block;
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
   }
 
   .table-card-layout .data-table tfoot tr {
-    background: var(--surface-subtle) !important;
-    border: 2px solid var(--color-gray-300);
-    padding: 0.75rem;
-    margin-bottom: 0.75rem;
+    background: var(--surface-subtle);
+    border-color: var(--color-gray-300);
   }
 
-  .table-card-layout .data-table tfoot th[scope="row"] {
+  .table-card-layout .data-table tfoot th {
     font-size: 1rem;
     font-weight: 700;
     color: var(--color-gray-800);
-    padding: 0 0 0.75rem 0;
-    margin-bottom: 0.75rem;
-    border-bottom: 2px solid var(--color-gray-300);
-    display: block;
+    padding: 0;
+    text-align: left;
   }
 
-  .table-card-layout .data-table tfoot td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--color-gray-200);
+  /* Summary rows whose cell is a value or prose under the tfoot heading,
+     not a label/value pair. Alignment stays whatever the cell asked for. */
+  .table-card-layout .data-table tfoot td:not([data-label]) {
+    padding: 0.375rem 0 0;
+    color: var(--color-gray-800);
   }
+}
 
-  .table-card-layout .data-table tfoot td:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-
-  .table-card-layout .data-table tfoot td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--color-gray-700);
-    font-size: 1rem;
-  }
-
-  .table-card-layout .data-table tfoot td strong {
-    font-size: 1.125rem;
-    font-weight: 700;
+@media (max-width: 768px) {
+  .data-table thead th,
+  .data-table tbody td,
+  .data-table tbody th,
+  .data-table tfoot th,
+  .data-table tfoot td {
+    padding: 0.5rem 0.625rem;
   }
 }
 
@@ -1675,48 +1831,76 @@ button[title]:not([title=""]):hover::before {
 .input-prefix { padding-right: 0.3rem; }
 .input-suffix { padding-left: 0.3rem; }
 
+/* --------------------------------------------------------------------------
+   CANONICAL DATA ENTRY (card 1)
+   One contract for every explorer. Label sits above its field so long
+   curriculum labels wrap instead of pushing the field off the card.
+
+   Do not re-declare these in *-specific.css. Domain CSS may add only
+   variable-colour classes for label letters and genuine one-offs
+   (e.g. a wider suffix). See _shared/README.md.
+   -------------------------------------------------------------------------- */
 .input-group-inline {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 2rem;
+  align-items: flex-end;
+  gap: 0.75rem 1.25rem;
 }
 
 .input-inline {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  /* Labels wrap. Nothing in this card is ever clipped to fit. */
+  white-space: normal;
 }
 
 .input-label-inline {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--color-gray-700);
-  min-width: fit-content;
 }
 
+/* Variable letters in a label sit on --surface-card, so --var-* / .eq-var-*
+   are allowed here. Subscripts inherit weight and stay upright. */
+.input-label-inline sub,
+.input-label-inline sup {
+  font-weight: inherit;
+  font-style: normal;
+}
+
+/* align-self keeps this box the width of its field. Without it the column
+   stretches it to the label width and the absolute unit lands outside the
+   border. */
 .input-with-suffix-inline {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  width: 6rem;
-  position: relative;
+  align-self: start;
+  min-width: 0;
 }
 
 .input-field-inline {
-  flex: 1;
-  width: 100%;
-  padding: 0.4rem 0.5rem;
-  padding-right: 1.5rem;
-  border: 1px solid var(--color-input-border);
-  border-radius: 0.375rem;
-  font-family: inherit;
-  font-size: 0.875rem;
-  text-align: right;
+  width: 6rem;
+  min-width: 0;
   box-sizing: border-box;
-  min-height: 44px;
+  padding: 0.375rem 0.5rem;
+  border: 1.5px solid var(--color-input-border);
+  border-radius: 0.375rem;
   background: var(--surface-card);
   color: var(--color-gray-800);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  text-align: right;
+  min-height: 44px;
+}
+
+/* Fields that can hold larger values (e.g. principal up to 1,000,000). */
+.input-field-wide {
+  width: 8.5rem;
 }
 
 .input-field-inline:hover {
@@ -1724,53 +1908,70 @@ button[title]:not([title=""]):hover::before {
 }
 
 .input-field-inline:focus {
-  outline: none;
+  outline: 2px solid var(--color-blue-interactive);
+  outline-offset: 1px;
   border-color: var(--color-blue-interactive);
-  box-shadow: 0 0 0 2px rgba(60, 106, 229, 0.1);
 }
 
-.input-field-inline.error {
-  border-color: var(--color-red-700) !important;
-  box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.2);
+.input-field-inline.error,
+.input-field-inline[aria-invalid="true"] {
+  border-color: var(--color-error);
+  background-color: var(--color-error-bg);
 }
 
-.input-prefix-inline {
-  position: absolute;
-  left: 0.4rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gray-500);
-  pointer-events: none;
-  font-size: 0.875rem;
-  z-index: 1;
-}
-
-.input-field-inline.input-with-prefix {
-  padding-left: 2.5rem;
-}
-
+/* Units sit inside the field. The matching padding is claimed automatically,
+   so markup never needs spacer spans or per-field padding overrides. */
+.input-prefix-inline,
 .input-suffix-inline {
   position: absolute;
-  right: 0.4rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
   pointer-events: none;
-  width: 1.2rem;
-  text-align: right;
-  font-size: 0.875rem;
 }
 
-@media (max-width: 640px) {
+.input-prefix-inline { left: 0.5rem; }
+.input-suffix-inline { right: 0.5rem; }
+
+.input-field-inline.input-with-prefix {
+  width: 9rem;
+  padding-left: 2.75rem;
+}
+
+.input-with-suffix-inline:has(> .input-suffix-inline) .input-field-inline {
+  padding-right: 1.9rem;
+}
+
+/* Multi-character units ("years") need more room than "%". */
+.input-with-suffix-inline.input-with-suffix-wide .input-field-inline {
+  width: 8rem;
+  padding-right: 3.5rem;
+}
+
+/* Matches the table card breakpoint: one field per row, full width. */
+@media (max-width: 48em) {
   .input-group-inline {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    align-items: stretch;
+    gap: 0.75rem;
   }
-  .input-inline { width: 100%; }
-  .input-with-suffix-inline {
+
+  .input-inline {
     width: 100%;
-    max-width: 12rem;
+  }
+
+  .input-with-suffix-inline {
+    align-self: stretch;
+  }
+
+  .input-field-inline,
+  .input-field-wide,
+  .input-field-inline.input-with-prefix,
+  .input-with-suffix-inline.input-with-suffix-wide .input-field-inline {
+    width: 100%;
   }
 }
 
