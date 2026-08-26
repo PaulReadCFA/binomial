@@ -9,6 +9,7 @@ import {
   formatPercentage,
   formatWithUnicodeMinus,
   clampNumericInputLength,
+  applyTableRoles,
   NUMERIC_INPUT_MAX_CHARS
 } from './binomial-modules/utils.js';
 import { getChartTypography } from './chart-typography.js';
@@ -25,9 +26,7 @@ Chart.register(ChartDataLabels);
 
 let assetChart, callChart, putChart;
 let currentView = 'chart';
-
-// Detect reduced-motion preference once at startup
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const treeFocusIndices = new Map();
 
 /** Curriculum chart label convention: 13px / 600 / Lato at the 18px design root. */
 const CHART_FONT = { family: '', size: 13, weight: '600' };
@@ -174,8 +173,7 @@ function setupViewToggle() {
         switchView('chart');
         const firstChart = $('#asset-chart');
         if (firstChart) {
-          const container = firstChart.closest('.binomial-chart-container');
-          if (container) container.focus();
+          firstChart.focus();
         }
       }
     });
@@ -193,8 +191,9 @@ function setupViewToggle() {
       } else if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         switchView('table');
-        const table = $('#binomial-table');
-        if (table) table.focus();
+        // The table itself is not focusable; its region wrapper carries tabindex="0".
+        const tableRegion = $('#table-container');
+        if (tableRegion) tableRegion.focus();
       }
     });
   }
@@ -215,6 +214,21 @@ function switchView(view) {
     tableEl: tableView,
     showChart: view === 'chart',
   });
+  const showingChart = view === 'chart';
+  ['asset-chart', 'call-chart', 'put-chart'].forEach((id) => {
+    const canvas = $(`#${id}`);
+    if (canvas) canvas.tabIndex = showingChart ? 0 : -1;
+  });
+  const pointAnnouncement = $('#chart-point-announcement');
+  if (pointAnnouncement) {
+    if (showingChart) {
+      pointAnnouncement.textContent = '';
+      pointAnnouncement.removeAttribute('aria-hidden');
+    } else {
+      pointAnnouncement.setAttribute('aria-hidden', 'true');
+      pointAnnouncement.textContent = '';
+    }
+  }
   updateToggleButtonStates({
     chartBtn,
     tableBtn,
@@ -442,6 +456,11 @@ function renderDynamicEquation(calc, params) {
     MathJax.Hub.Queue(function() {
       fitDynamicEquations();
       container.style.visibility = 'visible';
+      // Drop MathJax-generated tabindex so the equations are not extra tab
+      // stops; the maths itself stays exposed to assistive technology.
+      container
+        .querySelectorAll('.MathJax[tabindex], .MathJax_Display[tabindex]')
+        .forEach(function(el) { el.removeAttribute('tabindex'); });
       // Update the section's aria-label so SR users hear the results
       // immediately when they tab to the section — no input change needed.
       const section = $('#equation-card');
@@ -458,66 +477,74 @@ function renderDynamicEquation(calc, params) {
   }
 }
 
+// Must match the Value column header in index.html exactly.
+const VALUE_COLUMN_LABEL = 'Value (USD / %)';
+
 // Table-safe colours are darker than the chart fills so they retain AA
 // contrast on both white and striped rows.
 function renderTable(calc, params) {
   const tbody = $('#table-body');
   if (!tbody) return;
 
+  // data-label mirrors the Value column header: it becomes the visible label
+  // once the shared base reflows each row into a card below 768px. The metric
+  // row headers already read as titles, so they need no label of their own.
   tbody.innerHTML = `
     <tr>
       <th scope="row">Asset Price (<i>S</i><sub>0</sub>)</th>
-      <td>${params.s0.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value">${params.s0.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-var-5">Up-State Price (<i>S</i><sub>u</sub>)</th>
-      <td class="table-var-5">${params.su.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-5">${params.su.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-var-red">Down-State Price (<i>S</i><sub>d</sub>)</th>
-      <td class="table-var-red">${params.sd.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-red">${params.sd.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row">Strike Price (<i>K</i>)</th>
-      <td>${params.strike.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value">${params.strike.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row">Risk-Free Rate (<i>r</i>)</th>
-      <td>${params.riskFreeRate.toFixed(2)}%</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value">${params.riskFreeRate.toFixed(2)}%</span></td>
     </tr>
     <tr class="table-section-start">
       <th scope="row" class="table-var-2">Call Option Price (<i>C</i><sub>0</sub>)</th>
-      <td class="table-var-2"><strong>${calc.C0.toFixed(2)}</strong></td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-2"><strong>${calc.C0.toFixed(2)}</strong></span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-2">Call Hedge Ratio (HR<sub><i>C</i></sub>)</th>
-      <td class="table-var-2">${formatWithUnicodeMinus(calc.HRc, 4)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-2">${formatWithUnicodeMinus(calc.HRc, 4)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-2">Call up payoff (<i>C</i><sub>u</sub>)</th>
-      <td class="table-var-2">${calc.Cu.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-2">${calc.Cu.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-2">Call down payoff (<i>C</i><sub>d</sub>)</th>
-      <td class="table-var-2">${calc.Cd.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-2">${calc.Cd.toFixed(2)}</span></td>
     </tr>
     <tr class="table-section-start">
       <th scope="row" class="table-var-3">Put Option Price (<i>P</i><sub>0</sub>)</th>
-      <td class="table-var-3"><strong>${calc.P0.toFixed(2)}</strong></td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-3"><strong>${calc.P0.toFixed(2)}</strong></span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-3">Put Hedge Ratio (HR<sub><i>P</i></sub>)</th>
-      <td class="table-var-3">${formatWithUnicodeMinus(calc.HRp, 4)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-3">${formatWithUnicodeMinus(calc.HRp, 4)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-3">Put up payoff (<i>P</i><sub>u</sub>)</th>
-      <td class="table-var-3">${calc.Pu.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-3">${calc.Pu.toFixed(2)}</span></td>
     </tr>
     <tr>
       <th scope="row" class="table-submetric table-var-3">Put down payoff (<i>P</i><sub>d</sub>)</th>
-      <td class="table-var-3">${calc.Pd.toFixed(2)}</td>
+      <td data-label="${VALUE_COLUMN_LABEL}"><span class="cell-value table-var-3">${calc.Pd.toFixed(2)}</span></td>
     </tr>
   `;
+
+  applyTableRoles($('#binomial-table'));
 }
 
 function renderCharts(calc, params) {
@@ -528,6 +555,87 @@ function renderCharts(calc, params) {
   renderAssetChart(calc, params);
   renderCallChart(calc, params);
   renderPutChart(calc, params);
+  setupTreeKeyboardNavigation();
+}
+
+function setupTreeKeyboardNavigation() {
+  const configs = [
+    {
+      id: 'asset-chart',
+      chart: () => assetChart,
+      name: 'Asset price tree',
+      values: () => [state.s0, state.su, state.sd],
+      variables: ['S 0', 'S u', 'S d']
+    },
+    {
+      id: 'call-chart',
+      chart: () => callChart,
+      name: 'Call option value tree',
+      values: () => [state.optionCalculations?.C0, state.optionCalculations?.Cu, state.optionCalculations?.Cd],
+      variables: ['C 0', 'C u', 'C d']
+    },
+    {
+      id: 'put-chart',
+      chart: () => putChart,
+      name: 'Put option value tree',
+      values: () => [state.optionCalculations?.P0, state.optionCalculations?.Pu, state.optionCalculations?.Pd],
+      variables: ['P 0', 'P u', 'P d']
+    }
+  ];
+
+  configs.forEach((config) => {
+    const canvas = $(`#${config.id}`);
+    if (!canvas) return;
+    if (canvas._treeKeydown) canvas.removeEventListener('keydown', canvas._treeKeydown);
+    if (canvas._treeFocus) canvas.removeEventListener('focus', canvas._treeFocus);
+    if (canvas._treeBlur) canvas.removeEventListener('blur', canvas._treeBlur);
+
+    const announce = () => {
+      const index = treeFocusIndices.get(config.id) || 0;
+      const value = config.values()[index];
+      const stop = index === 0 ? 't equals 0, root' : `t equals 1, ${index === 1 ? 'up' : 'down'} state`;
+      const region = $('#chart-point-announcement');
+      if (region && Number.isFinite(value)) {
+        region.textContent = `${config.name}. ${stop}, ${config.variables[index]} equals USD${value.toFixed(2)}.`;
+      }
+      const chart = config.chart();
+      if (!chart) return;
+      const active = index === 0
+        ? [{ datasetIndex: 0, index: 0 }]
+        : [{ datasetIndex: index === 1 ? 0 : 1, index: 1 }];
+      const point = chart.getDatasetMeta(active[0].datasetIndex).data[active[0].index];
+      if (point) {
+        chart.tooltip.setActiveElements(active, { x: point.x, y: point.y });
+        chart.update('none');
+      }
+    };
+
+    canvas._treeKeydown = (event) => {
+      let index = treeFocusIndices.get(config.id) || 0;
+      if (event.key === 'ArrowRight') index = Math.min(index + 1, 2);
+      else if (event.key === 'ArrowLeft') index = Math.max(index - 1, 0);
+      else if (event.key === 'Home') index = 0;
+      else if (event.key === 'End') index = 2;
+      else return;
+      event.preventDefault();
+      treeFocusIndices.set(config.id, index);
+      announce();
+    };
+    canvas._treeFocus = () => {
+      treeFocusIndices.set(config.id, 0);
+      announce();
+    };
+    canvas._treeBlur = () => {
+      const chart = config.chart();
+      if (chart) {
+        chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+        chart.update('none');
+      }
+    };
+    canvas.addEventListener('keydown', canvas._treeKeydown);
+    canvas.addEventListener('focus', canvas._treeFocus);
+    canvas.addEventListener('blur', canvas._treeBlur);
+  });
 }
 
 // Asset price chart.
@@ -736,7 +844,7 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: prefersReducedMotion ? { duration: 0 } : undefined,
+    animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? { duration: 0 } : undefined,
     layout: {
       padding: { top: 44, right: 100, bottom: 28, left: 88 }
     },

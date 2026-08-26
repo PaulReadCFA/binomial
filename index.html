@@ -234,9 +234,13 @@
               </p>
             </div>
 
-            <p id="chart-accessibility-note" class="sr-only" hidden>
-              This is a visual chart. Switch to Table view for accessible data values.
+            <p id="chart-accessibility-note" class="sr-only">
+              Three keyboard-navigable trees show the current and terminal asset, call, and put values.
             </p>
+            <p id="chart-keyboard-help" class="sr-only">
+              Use Left and Right arrow keys to move among the root, up-state terminal, and down-state terminal. Home moves to the root and End moves to the down-state terminal.
+            </p>
+            <p id="chart-point-announcement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
 
             <!-- Chart containers -->
             <div id="charts-wrapper">
@@ -244,31 +248,28 @@
               <div class="binomial-chart-section">
                 <!-- "Binomial Tree" removed per SME feedback -->
                 <h5 class="binomial-chart-title" id="asset-chart-title">Underlying Asset Price</h5>
-                <div class="binomial-chart-container"
-                     role="img"
-                     aria-labelledby="asset-chart-title"
-                     tabindex="-1">
-                  <canvas id="asset-chart"></canvas>
+                <div class="binomial-chart-container">
+                  <canvas id="asset-chart" tabindex="0" role="img"
+                          aria-labelledby="asset-chart-title"
+                          aria-describedby="chart-accessibility-note chart-keyboard-help"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
                 <h5 class="binomial-chart-title" id="call-chart-title">Call Option Value</h5>
-                <div class="binomial-chart-container"
-                     role="img"
-                     aria-labelledby="call-chart-title"
-                     tabindex="-1">
-                  <canvas id="call-chart"></canvas>
+                <div class="binomial-chart-container">
+                  <canvas id="call-chart" tabindex="0" role="img"
+                          aria-labelledby="call-chart-title"
+                          aria-describedby="chart-accessibility-note chart-keyboard-help"></canvas>
                 </div>
               </div>
 
               <div class="binomial-chart-section">
                 <h5 class="binomial-chart-title" id="put-chart-title">Put Option Value</h5>
-                <div class="binomial-chart-container"
-                     role="img"
-                     aria-labelledby="put-chart-title"
-                     tabindex="-1">
-                  <canvas id="put-chart"></canvas>
+                <div class="binomial-chart-container">
+                  <canvas id="put-chart" tabindex="0" role="img"
+                          aria-labelledby="put-chart-title"
+                          aria-describedby="chart-accessibility-note chart-keyboard-help"></canvas>
                 </div>
               </div>
 
@@ -277,7 +278,7 @@
 
           <!-- Table view (hidden by default) -->
           <div id="table-view" style="display: none;" aria-hidden="true">
-            <div class="table-wrapper" role="region" aria-label="Binomial option pricing table" tabindex="0">
+            <div id="table-container" class="table-wrapper table-card-layout" role="region" aria-label="Binomial option pricing table" tabindex="0">
               <table class="data-table" id="binomial-table">
                 <caption class="sr-only">Binomial option pricing values</caption>
                 <thead>
