@@ -86,7 +86,7 @@
               Enter asset prices, strike price, and risk-free rate to calculate option prices.
             </p>
 
-            <div id="validation-summary" class="validation-summary" role="alert" style="display: none;">
+            <div id="validation-summary" class="validation-summary" style="display: none;">
               <div class="validation-title">Please correct the following:</div>
               <ul id="validation-list"></ul>
             </div>
@@ -210,12 +210,15 @@
               </div>
             </div>
 
-            <div class="button-group" role="toolbar">
-              <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true" aria-label="View chart">Chart</button>
-              <button id="view-table-btn" class="toggle-btn" aria-pressed="false" aria-label="View table">Table</button>
+            <div class="button-group" role="toolbar" aria-label="Chart or table view" aria-describedby="view-toggle-help">
+              <button id="view-chart-btn" class="toggle-btn active" aria-pressed="true" aria-label="View chart" aria-controls="chart-view">Chart</button>
+              <button id="view-table-btn" class="toggle-btn" aria-pressed="false" aria-label="View table" aria-controls="table-view">Table</button>
             </div>
             <p id="chart-helper-text" class="text-xs text-gray-500" style="display: none; margin-top: 0.5rem;">
               Chart view is not available at narrow screen widths. Showing table view.
+            </p>
+            <p id="view-toggle-help" class="sr-only">
+              Chart and Table act as a single toolbar: only one button is in the tab order at a time. Use left and right arrow keys to move between them. Table lists every value in one place.
             </p>
           </div>
 
@@ -273,7 +276,7 @@
           </div>
 
           <!-- Table view (hidden by default) -->
-          <div id="table-view" style="display: none;">
+          <div id="table-view" style="display: none;" aria-hidden="true">
             <div class="table-wrapper" role="region" aria-label="Binomial option pricing table" tabindex="0">
               <table class="data-table" id="binomial-table">
                 <caption class="sr-only">Binomial option pricing values</caption>

@@ -1,4 +1,13 @@
-import { $ } from './utils.js';
+import {
+  updateFieldError,
+  updateValidationSummary,
+  hasErrors,
+  requiredMessage,
+  minMessage,
+  maxMessage,
+} from '../validation-ui.js';
+
+export { updateFieldError, updateValidationSummary, hasErrors };
 
 const VALIDATION_RULES = {
   s0: { min: 0, positive: true, required: true, label: 'Current price' },
@@ -13,19 +22,19 @@ export function validateField(field, value) {
   if (!rules) return null;
   
   if (rules.required && (value === '' || value == null || !Number.isFinite(Number(value)))) {
-    return `${rules.label} is required`;
+    return requiredMessage(rules.label);
   }
 
   if (rules.positive && Number(value) <= 0) {
-    return `${rules.label} must be greater than 0`;
+    return `${rules.label} must be > 0`;
   }
   
   if (rules.min !== undefined && value < rules.min) {
-    return `${rules.label} must be at least ${rules.min}${rules.unit || ''}`;
+    return minMessage(rules.label, `${rules.min}${rules.unit || ''}`);
   }
   
   if (rules.max !== undefined && value > rules.max) {
-    return `${rules.label} cannot exceed ${rules.max}${rules.unit || ''}`;
+    return maxMessage(rules.label, `${rules.max}${rules.unit || ''}`);
   }
   
   return null;
@@ -40,16 +49,16 @@ export function validateAll(inputs) {
   });
   
   if (Number.isFinite(inputs.su) && Number.isFinite(inputs.sd) && inputs.su <= inputs.sd) {
-    errors.upDown = 'Up-state price must be greater than down-state price';
+    errors.su = 'Up-state price must be greater than down-state price';
   }
   
   if (Number.isFinite(inputs.s0) && Number.isFinite(inputs.su) && Number.isFinite(inputs.sd)) {
     if (!(inputs.sd < inputs.s0 && inputs.s0 < inputs.su)) {
-      errors.currentPrice = 'Current price must be between down-state and up-state prices';
+      errors.s0 = 'Current price must be between down-state and up-state prices';
     }
   }
 
-  if (!errors.upDown && !errors.currentPrice
+  if (!errors.su && !errors.s0
       && Number.isFinite(inputs.riskFreeRate)) {
     const r = inputs.riskFreeRate / 100;
     const probability = ((1 + r) * inputs.s0 - inputs.sd) / (inputs.su - inputs.sd);
@@ -59,37 +68,4 @@ export function validateAll(inputs) {
   }
   
   return errors;
-}
-
-export function updateFieldError(fieldId, errorMessage) {
-  const input = $(`#${fieldId}`);
-  if (!input) return;
-  
-  if (errorMessage) {
-    input.setAttribute('aria-invalid', 'true');
-    input.classList.add('error');
-  } else {
-    input.removeAttribute('aria-invalid');
-    input.classList.remove('error');
-  }
-}
-
-export function updateValidationSummary(errors) {
-  const summary = $('#validation-summary');
-  const list = $('#validation-list');
-
-  if (!summary || !list) return;
-
-  if (hasErrors(errors)) {
-    list.innerHTML = Object.entries(errors)
-      .map(([field, message]) => `<li>${message}</li>`)
-      .join('');
-    summary.style.display = 'block';
-  } else {
-    summary.style.display = 'none';
-  }
-}
-
-export function hasErrors(errors) {
-  return Object.keys(errors).length > 0;
 }

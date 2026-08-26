@@ -1,6 +1,6 @@
 import { state, setState, subscribe } from './binomial-modules/state.js';
 import { calculateOptionMetrics } from './binomial-modules/calculations.js';
-import { validateField, validateAll, updateFieldError, updateValidationSummary, hasErrors } from './binomial-modules/validation.js';
+import { validateAll, updateFieldError, updateValidationSummary, hasErrors } from './binomial-modules/validation.js';
 import {
   $,
   listen,
@@ -9,10 +9,16 @@ import {
   formatPercentage,
   formatWithUnicodeMinus,
   clampNumericInputLength,
-  NUMERIC_INPUT_MAX_CHARS,
-  announceToScreenReader
+  NUMERIC_INPUT_MAX_CHARS
 } from './binomial-modules/utils.js';
 import { getChartTypography } from './chart-typography.js';
+import { allFinite } from './validation-ui.js';
+import {
+  applyChartTableVisibility,
+  updateToggleButtonStates,
+  announceView,
+  VIEW_ANNOUNCEMENTS,
+} from './view-toggle.js';
 
 // Register Chart.js datalabels plugin
 Chart.register(ChartDataLabels);
@@ -94,18 +100,15 @@ function applyViewportMode() {
   const helper = $('#chart-helper-text');
 
   if (isNarrow()) {
-    chartBtn.disabled = true;
     chartBtn.setAttribute('aria-disabled', 'true');
     chartBtn.removeAttribute('title');
     chartBtn.setAttribute('aria-describedby', 'chart-helper-text');
     if (helper) helper.style.display = 'block';
     switchView('table');
   } else {
-    chartBtn.disabled = false;
     chartBtn.removeAttribute('aria-disabled');
     chartBtn.removeAttribute('title');
     chartBtn.removeAttribute('aria-describedby');
-    tableBtn.disabled = false;
     tableBtn.removeAttribute('aria-disabled');
     tableBtn.removeAttribute('title');
     if (helper) helper.style.display = 'none';
@@ -114,6 +117,12 @@ function applyViewportMode() {
       renderCharts(state.optionCalculations, state);
     }
   }
+  updateToggleButtonStates({
+    chartBtn,
+    tableBtn,
+    showingChart: currentView === 'chart',
+    forceTable: isNarrow(),
+  });
 }
 
 function init() {
@@ -149,12 +158,6 @@ function setupViewToggle() {
     listen(tableBtn, 'click', () => {
       switchView('table');
       tableBtn.focus();
-    });
-
-    listen(tableBtn, 'focus', () => {
-      if (document.activeElement === tableBtn && currentView === 'chart') {
-        switchView('table');
-      }
     });
 
     listen(chartBtn, 'keydown', (e) => {
@@ -207,12 +210,20 @@ function switchView(view) {
   const chartBtn = $('#view-chart-btn');
   const tableBtn = $('#view-table-btn');
 
+  applyChartTableVisibility({
+    chartEl: chartView,
+    tableEl: tableView,
+    showChart: view === 'chart',
+  });
+  updateToggleButtonStates({
+    chartBtn,
+    tableBtn,
+    showingChart: view === 'chart',
+    forceTable: isNarrow(),
+  });
+
   if (view === 'chart') {
-    if (chartView) chartView.style.display = 'block';
-    if (tableView) tableView.style.display = 'none';
-    if (chartBtn) { chartBtn.classList.add('active'); chartBtn.setAttribute('aria-pressed', 'true'); }
-    if (tableBtn) { tableBtn.classList.remove('active'); tableBtn.setAttribute('aria-pressed', 'false'); }
-    if (previousView !== 'chart') announceToScreenReader('Chart view active');
+    if (previousView !== 'chart') announceView(VIEW_ANNOUNCEMENTS.chart);
     // Canvases were display:none in table view — resize after layout so charts (and page width) stay stable
     requestAnimationFrame(() => {
       [assetChart, callChart, putChart].forEach((ch) => {
@@ -220,14 +231,10 @@ function switchView(view) {
       });
     });
   } else {
-    if (chartView) chartView.style.display = 'none';
-    if (tableView) tableView.style.display = 'block';
-    if (chartBtn) { chartBtn.classList.remove('active'); chartBtn.setAttribute('aria-pressed', 'false'); }
-    if (tableBtn) { tableBtn.classList.add('active'); tableBtn.setAttribute('aria-pressed', 'true'); }
     if (state.optionCalculations) {
       renderTable(state.optionCalculations, state);
     }
-    if (previousView !== 'table') announceToScreenReader('Table view active');
+    if (previousView !== 'table') announceView(VIEW_ANNOUNCEMENTS.table);
   }
 }
 
@@ -246,9 +253,12 @@ function setupInputListeners() {
 
     const debouncedUpdate = debounce(() => {
       const value = parseFloat(input.value);
-      const error = validateField(field, value);
-      updateFieldError(id, error);
       const errors = validateAll({ ...state, [field]: value });
+      updateFieldError('s0', errors.s0 || null);
+      updateFieldError('su', errors.su || null);
+      updateFieldError('sd', errors.sd || null);
+      updateFieldError('strike', errors.strike || null);
+      updateFieldError('risk-free-rate', errors.riskFreeRate || null);
       setState({ [field]: value, errors });
       updateValidationSummary(errors);
       updateCalculations();
@@ -272,6 +282,19 @@ function updateCalculations() {
 
   try {
     const calculations = calculateOptionMetrics({ s0, su, sd, strike, riskFreeRate });
+    if (!allFinite(
+      calculations.C0,
+      calculations.P0,
+      calculations.HRc,
+      calculations.HRp,
+      calculations.Cu,
+      calculations.Cd,
+      calculations.Pu,
+      calculations.Pd
+    )) {
+      setState({ optionCalculations: null });
+      return;
+    }
     setState({ optionCalculations: calculations });
   } catch (error) {
     console.error('Calculation error:', error);
