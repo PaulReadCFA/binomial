@@ -251,7 +251,7 @@ function setupInputListeners() {
       const errors = validateAll({ ...state, [field]: value });
       setState({ [field]: value, errors });
       updateValidationSummary(errors);
-      if (!hasErrors(errors)) { updateCalculations(); }
+      updateCalculations();
     }, 300);
 
     const onInput = () => {
@@ -310,7 +310,10 @@ function announceCalculationsToScreenReader(calc) {
 
 function handleStateChange(newState) {
   const { optionCalculations } = newState;
-  if (!optionCalculations) return;
+  if (!optionCalculations) {
+    clearCalculatedViews();
+    return;
+  }
 
   renderResults(optionCalculations, newState);
   renderDynamicEquation(optionCalculations, newState);
@@ -321,6 +324,24 @@ function handleStateChange(newState) {
     renderTable(optionCalculations, newState);
   }
   announceCalculationsToScreenReader(optionCalculations);
+}
+
+function clearCalculatedViews() {
+  [assetChart, callChart, putChart].forEach(chart => {
+    if (chart) chart.destroy();
+  });
+  assetChart = null;
+  callChart = null;
+  putChart = null;
+
+  const results = $('#results-content');
+  if (results) results.innerHTML = '';
+
+  const equation = $('#dynamic-mathml-equation');
+  if (equation) equation.innerHTML = '';
+
+  const tableBody = $('#table-body');
+  if (tableBody) tableBody.innerHTML = '';
 }
 
 function renderResults(calc, params) {
@@ -798,7 +819,7 @@ function runSelfTests() {
     {
       name: 'Binomial option pricing',
       inputs: { s0: 40, su: 56, sd: 32, strike: 50, riskFreeRate: 5 },
-      expected: { callApprox: 4.19, putApprox: 11.43 }
+      expected: { callApprox: 2.38, putApprox: 10.00 }
     }
   ];
 
