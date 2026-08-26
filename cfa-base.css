@@ -278,9 +278,6 @@
     See README § Quality review (EE QR checklist) for the full builder map.
     ========================================================================== */
 
-/* Google Fonts - Lato */
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;500;600;700&display=swap');
-
 /* ==========================================================================
    1. CSS VARIABLES
    ========================================================================== */
@@ -1306,6 +1303,12 @@ kbd {
     display: block;
   }
 
+  /* Author display rules override the browser's built-in [hidden] styling.
+     Reassert it so expandable detail rows remain collapsed in card mode. */
+  .table-card-layout .data-table tr[hidden] {
+    display: none;
+  }
+
   /* Visually hidden, not display:none: the ARIA roles map cells to these
      column headers by position, so removing them would strip the labels
      that screen reader users navigate by. */
@@ -1692,7 +1695,11 @@ button[title]:not([title=""]):hover::before {
 #view-chart-btn[disabled],
 #view-chart-btn[disabled]:hover,
 #view-chart-btn[disabled]:focus,
-#view-chart-btn[disabled]:active {
+#view-chart-btn[disabled]:active,
+#chart-view-btn[disabled],
+#chart-view-btn[disabled]:hover,
+#chart-view-btn[disabled]:focus,
+#chart-view-btn[disabled]:active {
   opacity: 0.4 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
@@ -1705,7 +1712,11 @@ button[title]:not([title=""]):hover::before {
 .force-table #view-chart-btn,
 .force-table #view-chart-btn:hover,
 .force-table #view-chart-btn:focus,
-.force-table #view-chart-btn:active {
+.force-table #view-chart-btn:active,
+.force-table #chart-view-btn,
+.force-table #chart-view-btn:hover,
+.force-table #chart-view-btn:focus,
+.force-table #chart-view-btn:active {
   opacity: 0.4 !important;
   pointer-events: none !important;
   cursor: not-allowed !important;

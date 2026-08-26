@@ -57,11 +57,12 @@ html {
   max-width: 100%;
 }
 
-/* Narrow viewport: chart toggle matches other explorers (forward exchange pattern) */
-#view-chart-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  pointer-events: none;
+.result-value.call-option-value {
+  color: var(--color-call-option);
+}
+
+.result-value.put-option-value {
+  color: var(--color-put-option);
 }
 
 /* Section titles stay in normal card-content flow (align with “Binomial Trees” + legend).
@@ -80,7 +81,7 @@ html {
   font-weight: 500;
   color: var(--color-gray-800);
   margin-bottom: 0.75rem;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Lato', sans-serif;
 }
 
 .binomial-chart-container {
@@ -114,6 +115,9 @@ html {
    are binomial-specific: up state green, down state red, others neutral. */
 .label-var-up   { color: var(--color-up-path); }
 .label-var-down { color: var(--color-down-path); }
+
+.legend-swatch-up { background-color: var(--color-up-path); }
+.legend-swatch-down { background-color: var(--color-down-path); }
 
 #calculator .input-section {
   max-width: 100%;

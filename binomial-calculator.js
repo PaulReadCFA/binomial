@@ -388,9 +388,9 @@ function renderResults(calc, params) {
   container.innerHTML = `
     <div class="result-box call-option">
       <h5 class="result-title call-option">Call Option Price</h5>
-      <div class="result-value" style="color: ${COLOR.call};">${formatCurrency(calc.C0)}</div>
+      <div class="result-value call-option-value">${formatCurrency(calc.C0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at <i>t</i> = 0
+        Fair value at 𝑡 = 0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${formatWithUnicodeMinus(calc.HRc, 4)}</div>
@@ -400,9 +400,9 @@ function renderResults(calc, params) {
 
     <div class="result-box put-option">
       <h5 class="result-title put-option">Put Option Price</h5>
-      <div class="result-value" style="color: ${COLOR.put};">${formatCurrency(calc.P0)}</div>
+      <div class="result-value put-option-value">${formatCurrency(calc.P0)}</div>
       <div class="result-description" style="font-size: 0.875rem; margin-top: 0.5rem;">
-        Fair value at <i>t</i> = 0
+        Fair value at 𝑡 = 0
       </div>
       <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb; font-size: 0.75rem; color: #4b5563;">
         <div>Hedge Ratio: ${formatWithUnicodeMinus(calc.HRp, 4)}</div>

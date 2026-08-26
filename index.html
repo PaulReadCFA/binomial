@@ -9,7 +9,7 @@
   <!-- Lato font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700&display=swap" rel="stylesheet">
 
   <!-- Styles -->
   <link rel="stylesheet" href="cfa-base.css">
@@ -74,8 +74,8 @@
       -->
 
       <!-- Card 0: Calculator — inputs first (issue #16) -->
-      <section class="card" id="calculator" tabindex="-1">
-        <h4 class="card-title">Binomial Option Pricing Calculator</h4>
+      <section class="card" id="calculator" tabindex="-1" aria-labelledby="calculator-title">
+        <h4 class="card-title" id="calculator-title">Binomial Option Pricing Calculator</h4>
         <div class="card-content">
           <p class="equation-intro">
             Enter your asset prices, strike price, and risk-free rate below. The option prices and visualizations will update automatically as you change the values.
@@ -179,8 +179,8 @@
       </section>
 
       <!-- Card 1: Dynamic Equations -->
-      <section id="equation-card" class="card" role="region" tabindex="0">
-        <h4 class="card-title">Binomial Option Pricing Equations</h4>
+      <section id="equation-card" class="card" role="region" tabindex="0" aria-labelledby="equation-title">
+        <h4 class="card-title" id="equation-title">Binomial Option Pricing Equations</h4>
 
         <div class="equation-container" role="region" aria-label="Binomial pricing calculations with current inputs" id="dynamic-equation-container">
           <p class="equation-intro">Using your values, the equations become:</p>
@@ -191,8 +191,8 @@
       </section>
 
       <!-- Card 2: Visualizer -->
-      <section class="card" id="visualizer" tabindex="-1">
-        <h4 class="card-title">Binomial Trees</h4>
+      <section class="card" id="visualizer" tabindex="-1" aria-labelledby="visualizer-title">
+        <h4 class="card-title" id="visualizer-title">Binomial Trees</h4>
         <div class="card-content">
 
           <!-- Legend outside chart/table panes so toggling views does not collapse this row -->
@@ -200,11 +200,11 @@
             <div role="region" aria-label="Chart legend">
               <div class="legend" id="chart-legend" role="list" aria-label="Legend">
                 <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #047857;"></span>
+                  <span class="legend-color legend-swatch-up"></span>
                   Up path
                 </span>
                 <span class="legend-item" role="listitem">
-                  <span class="legend-color" style="background-color: #b91c1c;"></span>
+                  <span class="legend-color legend-swatch-down"></span>
                   Down path
                 </span>
               </div>
@@ -230,7 +230,7 @@
               <h4 id="binomial-chart-title">Binomial option pricing trees</h4>
               <p>
                 Three line charts showing binomial trees for asset price, call option value, and put option value.
-                Each tree shows the value at <i>t</i>=0 branching into up and down states at <i>t</i>=1.
+                Each tree shows the value at 𝑡=0 branching into up and down states at 𝑡=1.
               </p>
             </div>
 
@@ -298,8 +298,8 @@
       </section>
 
       <!-- Card 3: Option Prices (results) -->
-      <section class="card" id="results-card">
-        <h4 class="card-title">Option Prices</h4>
+      <section class="card" id="results-card" aria-labelledby="results-title">
+        <h4 class="card-title" id="results-title">Option Prices</h4>
         <div class="card-content">
           <div id="results-content">
             <!-- Populated by JavaScript -->
