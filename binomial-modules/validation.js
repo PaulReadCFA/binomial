@@ -12,7 +12,7 @@ export function validateField(field, value) {
   const rules = VALIDATION_RULES[field];
   if (!rules) return null;
   
-  if (rules.required && (value === '' || value == null || isNaN(value))) {
+  if (rules.required && (value === '' || value == null || !Number.isFinite(Number(value)))) {
     return `${rules.label} is required`;
   }
   
@@ -35,11 +35,11 @@ export function validateAll(inputs) {
     if (error) errors[field] = error;
   });
   
-  if (inputs.su > 0 && inputs.sd > 0 && inputs.su <= inputs.sd) {
+  if (Number.isFinite(inputs.su) && Number.isFinite(inputs.sd) && inputs.su <= inputs.sd) {
     errors.upDown = 'Up-state price must be greater than down-state price';
   }
   
-  if (inputs.s0 > 0 && inputs.su > 0 && inputs.sd > 0) {
+  if (Number.isFinite(inputs.s0) && Number.isFinite(inputs.su) && Number.isFinite(inputs.sd)) {
     if (!(inputs.sd < inputs.s0 && inputs.s0 < inputs.su)) {
       errors.currentPrice = 'Current price must be between down-state and up-state prices';
     }
