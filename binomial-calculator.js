@@ -944,27 +944,27 @@ function getChartOptions(yLabel, prefix = '', hideYAxis = false, customLabelForm
   };
 }
 
+function logSelfTest(name, passed, detail) {
+  if (passed) console.log(`✓ ${name}`);
+  else console.warn(`✗ ${name}${detail ? ': ' + detail : ''}`);
+}
+
 function runSelfTests() {
   console.log('Running self-tests...');
-  const tests = [
-    {
-      name: 'Binomial option pricing',
-      inputs: { s0: 40, su: 56, sd: 32, strike: 50, riskFreeRate: 5 },
-      expected: { callApprox: 2.38, putApprox: 10.00 }
-    }
-  ];
+  const result = calculateOptionMetrics({ s0: 40, su: 56, sd: 32, strike: 50, riskFreeRate: 5 });
+  logSelfTest('Defaults → call ≈ 2.38', Math.abs(result.C0 - 2.38) <= 0.1, `got ${result.C0}`);
+  logSelfTest('Defaults → put ≈ 10.00', Math.abs(result.P0 - 10) <= 0.1, `got ${result.P0}`);
+  logSelfTest('Valid outputs are finite', Number.isFinite(result.C0) && Number.isFinite(result.P0) && Number.isFinite(result.p));
 
-  tests.forEach(test => {
-    try {
-      const result = calculateOptionMetrics(test.inputs);
-      let passed = true;
-      if (test.expected.callApprox && Math.abs(result.C0 - test.expected.callApprox) > 0.1) passed = false;
-      if (test.expected.putApprox  && Math.abs(result.P0 - test.expected.putApprox)  > 0.1) passed = false;
-      console.log(`${passed ? '\u2713' : '\u2717'} ${test.name} ${passed ? 'passed' : 'failed'}`);
-    } catch (error) {
-      console.error(`\u2717 ${test.name} threw error:`, error);
-    }
-  });
+  const empty = validateAll({ s0: NaN, su: 56, sd: 32, strike: 50, riskFreeRate: 5 });
+  logSelfTest('Empty current price is required', Boolean(empty.s0));
+
+  const tree = validateAll({ s0: 40, su: 30, sd: 32, strike: 50, riskFreeRate: 5 });
+  logSelfTest('Up-state must exceed down-state', Boolean(tree.su));
+
+  const pOut = validateAll({ s0: 40, su: 56, sd: 32, strike: 50, riskFreeRate: 100 });
+  logSelfTest('Rate that puts p outside [0, 1] is rejected', Boolean(pOut.riskFreeRate));
+
   console.log('Self-tests complete');
 }
 
