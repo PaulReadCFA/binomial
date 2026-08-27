@@ -461,11 +461,12 @@ function renderDynamicEquation(calc, params) {
       container
         .querySelectorAll('.MathJax[tabindex], .MathJax_Display[tabindex]')
         .forEach(function(el) { el.removeAttribute('tabindex'); });
-      // Update the section's aria-label so SR users hear the results
-      // immediately when they tab to the section — no input change needed.
-      const section = $('#equation-card');
-      if (section) {
-        section.setAttribute('aria-label',
+      // Label the equation region, not the card: the card is named by its
+      // heading via aria-labelledby, which wins over aria-label and would
+      // silently swallow the results.
+      const region = $('#dynamic-equation-container');
+      if (region) {
+        region.setAttribute('aria-label',
           `Binomial Option Pricing Equations. ` +
           `Call hedge ratio: ${calc.HRc.toFixed(4)}. ` +
           `Call option price: ${formatCurrency(calc.C0)}. ` +

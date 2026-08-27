@@ -434,6 +434,19 @@
   --table-var-7: #646464; /* 4.77:1 minimum  — annotation */
   --table-var-red: #991B1C; /* 6.18:1 minimum — down state / red */
 
+  /* Tint-safe thematic text colours.
+     Result boxes and variable chips tint their background to the matching
+     10% surface (--var-*-bg), where the --var-* hues drop below 4.5:1
+     (#7A46FF on Purple 10% is 4.42:1). Use these for any text, title, or
+     value sitting on a tinted surface; they reuse the table-safe values and
+     are AA on both white and the 10% tint. Ratios are on the 10% tint. */
+  --color-purple-contrast: var(--table-var-3); /* 7.29:1 on Purple 10%      */
+  --color-blue-contrast:   var(--table-var-2); /* 5.51:1 on Bright Blue 10% */
+  --color-orange-contrast: var(--table-var-6); /* 6.49:1 on Orange 10%      */
+  --color-teal-contrast:   var(--table-var-4); /* 6.37:1 on Cyan 10%        */
+  --color-green-contrast:  var(--table-var-5); /* 7.75:1 on Pine 10%        */
+  --color-red-contrast:    var(--table-var-red); /* 7.60:1 on Orange 10%    */
+
 
   /* ──────────────────────────────────────────────────────────────────────
      D. UI INTERACTIVE COLOURS
@@ -546,10 +559,13 @@
   --color-bg-green:  var(--var-5-bg);
   --color-bg-teal:   var(--var-4-bg);
 
-  /* REMOVED — duplicates deleted in v3:
+  /* REMOVED — duplicates deleted in v3. Replacements in brackets:
      --color-orange-accent:   #b35b21  (≤6 lightness pts from --var-6, redundant)
+                                       [use --var-6, or --color-orange-contrast on a tint]
      --color-orange-darker:   #a84f15  (≤10 lightness pts from --var-6, redundant)
+                                       [use --color-orange-contrast]
      --color-green-data-alt:  #047857  (near-duplicate of Pine #07514F)
+                                       [use --var-5 / --color-green-data]
      --color-eggplant-deep:   #50037f  (off-brand, duplicates --var-3 role)
      --color-eggplant-medium: #733599  (off-brand, duplicates --var-3 role)
      --color-purple-200:      #e9d5ff  (replaced by --var-3-bg / --cfa-purple-10)
