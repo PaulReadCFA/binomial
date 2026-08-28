@@ -143,41 +143,6 @@ export function setHTML(element, html) {
   element.innerHTML = html;
 }
 
-/**
- * Mirror the implicit table semantics as explicit ARIA roles.
- *
- * Below 768px the shared base reflows rows into cards with display:block,
- * which makes browsers drop the implicit table/row/cell roles. Without these
- * attributes a screen reader reads the card as a flat run of text instead of
- * announcing row and column positions. Harmless at wider widths, where the
- * roles simply restate the native semantics.
- *
- * @param {Element|null} table - Table element to annotate
- */
-export function applyTableRoles(table) {
-  if (!table) return;
-
-  table.setAttribute('role', 'table');
-  table.querySelectorAll('thead, tbody, tfoot').forEach((group) => {
-    group.setAttribute('role', 'rowgroup');
-  });
-  table.querySelectorAll('tr').forEach((row) => {
-    row.setAttribute('role', 'row');
-  });
-  table.querySelectorAll('th').forEach((header) => {
-    header.setAttribute(
-      'role',
-      header.getAttribute('scope') === 'row' ? 'rowheader' : 'columnheader'
-    );
-  });
-  table.querySelectorAll('td').forEach((cell) => {
-    cell.setAttribute('role', 'cell');
-  });
-  // colspan is ignored once the cells are display:block
-  table.querySelectorAll('[colspan]').forEach((cell) => {
-    cell.setAttribute('aria-colspan', cell.getAttribute('colspan'));
-  });
-}
 
 /**
  * Focus element after a delay
