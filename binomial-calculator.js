@@ -6,6 +6,7 @@ import {
   listen,
   debounce,
   formatCurrency,
+  formatCurrencySpeech,
   formatPercentage,
   formatWithUnicodeMinus,
   clampNumericInputLength,
@@ -13,6 +14,7 @@ import {
   NUMERIC_INPUT_MAX_CHARS
 } from './binomial-modules/utils.js';
 import { getChartTypography } from './chart-typography.js';
+import { renderEquation } from './equation-render.js';
 import { allFinite } from './validation-ui.js';
 import {
   applyChartTableVisibility,
@@ -413,7 +415,7 @@ function renderResults(calc, params) {
 }
 
 // Dynamic equations — full colour coding applied:
-//   S0     → neutral (no \color; S0 is distinct from the up-state)
+//   S0     → neutral (S0 is distinct from the up-state)
 //   Su     → green
 //   Sd     → red
 //   c0, HRc, Cu, Cd, C0 → blue
@@ -426,41 +428,65 @@ function renderDynamicEquation(calc, params) {
   const onePlusR = (1 + r).toFixed(4);
   const { up, down, call: cl, put: pu } = COLOR;
 
+  const num = (value, color) => `<mn${color ? ` mathcolor="${color}"` : ''}>${value}</mn>`;
+  const hedgeRatio = (suffix, payoffUp, payoffDown, result, color) =>
+    `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+      <mrow>
+        <msub><mtext mathcolor="${color}">HR</mtext><mi mathcolor="${color}">${suffix}</mi></msub>
+        <mo>=</mo>
+        <mfrac>
+          <mrow>${num(payoffUp, color)}<mo>&#x2212;</mo>${num(payoffDown, color)}</mrow>
+          <mrow>${num(params.su.toFixed(2), up)}<mo>&#x2212;</mo>${num(params.sd.toFixed(2), down)}</mrow>
+        </mfrac>
+        <mo>=</mo>${num(result, color)}
+      </mrow>
+    </math>`;
+  const optionPrice = (symbol, hedge, payoffUp, result, color) =>
+    `<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+      <mrow>
+        <msub><mi mathcolor="${color}">${symbol}</mi><mn mathcolor="${color}">0</mn></msub>
+        <mo>=</mo>
+        ${num(params.s0.toFixed(2))}
+        <mo>&#x00D7;</mo>${num(hedge, color)}
+        <mo>&#x2212;</mo>
+        <mfrac>
+          <mrow>
+            ${num(hedge, color)}<mo>&#x00D7;</mo>${num(params.su.toFixed(2), up)}
+            <mo>&#x2212;</mo>${num(payoffUp, color)}
+          </mrow>
+          ${num(onePlusR)}
+        </mfrac>
+        <mo>=</mo>${num(result, color)}
+      </mrow>
+    </math>`;
+
   const content = `
     <div style="margin-bottom: 1.5rem;">
       <div style="font-weight: 400; margin-bottom: 0.5rem;">Call Hedge Ratio:</div>
-      <p style="margin-left: 1rem;">$$\\color{${cl}}{\\text{HR}_{C}} = \\frac{\\color{${cl}}{${calc.Cu.toFixed(2)}} - \\color{${cl}}{${calc.Cd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${cl}}{${calc.HRc.toFixed(4)}}$$</p>
+      <div style="margin-left: 1rem;">${hedgeRatio('C', calc.Cu.toFixed(2), calc.Cd.toFixed(2), calc.HRc.toFixed(4), cl)}</div>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
       <div style="font-weight: 400; margin-bottom: 0.5rem;">Call Option Price:</div>
-      <p style="margin-left: 1rem;">$$\\color{${cl}}{c_0} = ${params.s0.toFixed(2)} \\times \\color{${cl}}{${calc.HRc.toFixed(4)}} - \\frac{\\color{${cl}}{${calc.HRc.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${cl}}{${calc.Cu.toFixed(2)}}}{${onePlusR}} = \\color{${cl}}{${calc.C0.toFixed(2)}}$$</p>
+      <div style="margin-left: 1rem;">${optionPrice('c', calc.HRc.toFixed(4), calc.Cu.toFixed(2), calc.C0.toFixed(2), cl)}</div>
     </div>
 
     <div style="margin-bottom: 1.5rem;">
       <div style="font-weight: 400; margin-bottom: 0.5rem;">Put Hedge Ratio:</div>
-      <p style="margin-left: 1rem;">$$\\color{${pu}}{\\text{HR}_{P}} = \\frac{\\color{${pu}}{${calc.Pu.toFixed(2)}} - \\color{${pu}}{${calc.Pd.toFixed(2)}}}{\\color{${up}}{${params.su.toFixed(2)}} - \\color{${down}}{${params.sd.toFixed(2)}}} = \\color{${pu}}{${calc.HRp.toFixed(4)}}$$</p>
+      <div style="margin-left: 1rem;">${hedgeRatio('P', calc.Pu.toFixed(2), calc.Pd.toFixed(2), calc.HRp.toFixed(4), pu)}</div>
     </div>
 
     <div style="margin-bottom: 0.5rem;">
       <div style="font-weight: 400; margin-bottom: 0.5rem;">Put Option Price:</div>
-      <p style="margin-left: 1rem;">$$\\color{${pu}}{p_0} = ${params.s0.toFixed(2)} \\times \\color{${pu}}{${calc.HRp.toFixed(4)}} - \\frac{\\color{${pu}}{${calc.HRp.toFixed(4)}} \\times \\color{${up}}{${params.su.toFixed(2)}} - \\color{${pu}}{${calc.Pu.toFixed(2)}}}{${onePlusR}} = \\color{${pu}}{${calc.P0.toFixed(2)}}$$</p>
+      <div style="margin-left: 1rem;">${optionPrice('p', calc.HRp.toFixed(4), calc.Pu.toFixed(2), calc.P0.toFixed(2), pu)}</div>
     </div>
   `;
 
-  container.style.visibility = 'hidden';
-  container.innerHTML = content;
-
-  if (window.MathJax && window.MathJax.Hub) {
-    MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
-    MathJax.Hub.Queue(function() {
+  // The shared mount holds the card's height and hides the raw MathML while
+  // MathJax typesets, so the cards below stay put.
+  renderEquation(container, content, {
+    onTypeset: () => {
       fitDynamicEquations();
-      container.style.visibility = 'visible';
-      // Drop MathJax-generated tabindex so the equations are not extra tab
-      // stops; the maths itself stays exposed to assistive technology.
-      container
-        .querySelectorAll('.MathJax[tabindex], .MathJax_Display[tabindex]')
-        .forEach(function(el) { el.removeAttribute('tabindex'); });
       // Label the equation region, not the card: the card is named by its
       // heading via aria-labelledby, which wins over aria-label and would
       // silently swallow the results.
@@ -469,13 +495,13 @@ function renderDynamicEquation(calc, params) {
         region.setAttribute('aria-label',
           `Binomial Option Pricing Equations. ` +
           `Call hedge ratio: ${calc.HRc.toFixed(4)}. ` +
-          `Call option price: ${formatCurrency(calc.C0)}. ` +
+          `Call option price: ${formatCurrencySpeech(calc.C0)}. ` +
           `Put hedge ratio: ${calc.HRp.toFixed(4)}. ` +
-          `Put option price: ${formatCurrency(calc.P0)}.`
+          `Put option price: ${formatCurrencySpeech(calc.P0)}.`
         );
       }
-    });
-  }
+    },
+  });
 }
 
 // Must match the Value column header in index.html exactly.
@@ -597,7 +623,7 @@ function setupTreeKeyboardNavigation() {
       const stop = index === 0 ? 't equals 0, root' : `t equals 1, ${index === 1 ? 'up' : 'down'} state`;
       const region = $('#chart-point-announcement');
       if (region && Number.isFinite(value)) {
-        region.textContent = `${config.name}. ${stop}, ${config.variables[index]} equals USD${value.toFixed(2)}.`;
+        region.textContent = `${config.name}. ${stop}, ${config.variables[index]} equals ${formatCurrencySpeech(value)}.`;
       }
       const chart = config.chart();
       if (!chart) return;

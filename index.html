@@ -18,21 +18,18 @@
   <!-- MathJax 2.7.7 -->
   <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
-      tex2jax: {
-        inlineMath: [['$','$'], ['\\(','\\)']],
-        displayMath: [['$$','$$'], ['\\[','\\]']],
-        processEscapes: true
-      },
+      MathML: { extensions: ["content-mathml.js"] },
       "HTML-CSS": {
-        linebreaks: { automatic: false },
+        linebreaks: { automatic: true },
         scale: 90
       },
-      menuSettings: {
-        inTabOrder: false
-      }
+      menuSettings: { explorer: true },
+      showProcessingMessages: false,
+      messageStyle: "none",
+      skipStartupTypeset: false
     });
   </script>
-  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=MML_HTMLorMML"></script>
 
   <!-- Chart.js for visualization -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -179,7 +176,7 @@
       </section>
 
       <!-- Card 1: Dynamic Equations -->
-      <section id="equation-card" class="card" role="region" tabindex="0" aria-labelledby="equation-title">
+      <section id="equation-card" class="card" role="region" aria-labelledby="equation-title">
         <h4 class="card-title" id="equation-title">Binomial Option Pricing Equations</h4>
 
         <div class="equation-container" role="region" aria-label="Binomial pricing calculations with current inputs" id="dynamic-equation-container">

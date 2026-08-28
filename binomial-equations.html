@@ -150,12 +150,20 @@
       },
       showProcessingMessages: false,
       messageStyle: "none",
+      menuSettings: { explorer: true },
       skipStartupTypeset: false
     });
 
     function removeMathJaxTabindex() {
-      document.querySelectorAll(".MathJax, .MathJax_Display, [id^='MathJax-']").forEach(function (el) {
-        el.removeAttribute("tabindex");
+      document.querySelectorAll("[tabindex]").forEach(function (el) {
+        if (el.closest && el.closest("#static-equations-card")) return;
+        if (el.classList.contains("MathJax") ||
+            el.classList.contains("MathJax_Display") ||
+            (el.id && el.id.indexOf("MathJax-") === 0) ||
+            el.tagName === "MATH" ||
+            (el.closest && el.closest(".MathJax"))) {
+          el.removeAttribute("tabindex");
+        }
       });
     }
 
