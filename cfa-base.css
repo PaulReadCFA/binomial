@@ -1267,11 +1267,16 @@ kbd {
   text-align: right;
 }
 
+/* Editorial: only the "Note:" label is italic. Wrap it in <em>; the rest stays roman. */
 .table-note {
   font-size: 0.875rem;
   color: var(--color-gray-600);
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
+  font-style: normal;
+}
+
+.table-note em {
   font-style: italic;
 }
 
