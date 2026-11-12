@@ -11,6 +11,12 @@
  * in both directions, hides the mount while the source markup sits in the
  * DOM, and releases the pin once the typeset equation has painted.
  *
+ * An identical markup string is left in place. Replacing it anyway hides the
+ * equation for a beat and, if keyboard focus was on it, destroys that node so
+ * focus falls back to the page. When the markup does change under a focused
+ * equation, focus is returned to the new tab stop unless the user has already
+ * moved on.
+ *
  * Usage:
  *   import { renderEquation } from '../equation-render.js';
  *   renderEquation(mount, mathML, { onTypeset: () => announce(result) });
@@ -39,6 +45,45 @@ function reservationBox(mount, reserve) {
    from under it, and whoever owns it restores the styles the page started
    with, not the pinned ones. */
 const pins = new WeakMap();
+const lastMarkup = new WeakMap();
+
+/* The keyboard tab stop MathJax Explorer adds once the equation is typeset. */
+function equationTabStop(mount) {
+  return (
+    mount.querySelector('[id$="-Frame"]') ||
+    mount.querySelector('[role="application"]') ||
+    mount.querySelector('.MathJax')
+  );
+}
+
+function focusEquation(mount) {
+  const frame = equationTabStop(mount);
+  if (!frame || typeof frame.focus !== 'function') return;
+  if (!frame.hasAttribute('tabindex')) frame.setAttribute('tabindex', '0');
+  try {
+    frame.focus({ preventScroll: true });
+  } catch {
+    frame.focus();
+  }
+}
+
+/* MathJax finishes the accessible tab stop after Typeset returns, and a group
+   of equations can still be rewriting the mount when the first restore runs.
+   Retry only while focus is still on the node the browser fell back to. */
+function restoreEquationFocus(holds) {
+  const attempt = () => {
+    holds.forEach(({ mount, fallback }) => {
+      const active = document.activeElement;
+      if (active !== fallback && active !== document.body && active !== document.documentElement) return;
+      focusEquation(mount);
+    });
+  };
+  attempt();
+  requestAnimationFrame(attempt);
+  setTimeout(attempt, 50);
+  setTimeout(attempt, 250);
+  setTimeout(attempt, 600);
+}
 
 function pin(box) {
   const current = pins.get(box);
@@ -89,11 +134,30 @@ export function renderEquationGroup(entries, options = {}) {
     return;
   }
 
-  const held = items.map(({ mount, markup, reserve }) => {
+  /* Skip only when the same markup is still on the page. A caller may clear
+     the mount (e.g. on invalid input) and later restore identical markup. */
+  const changed = items.filter(
+    ({ mount, markup }) => lastMarkup.get(mount) !== markup || !mount.hasChildNodes()
+  );
+  if (changed.length === 0) {
+    if (typeof options.onTypeset === 'function') options.onTypeset();
+    return;
+  }
+
+  /* If focus was inside a mount, record where the browser put it once that
+     node is removed. After typeset, send focus back only if it is still
+     there — a later keypress means the user has moved on. */
+  const focusHolds = [];
+
+  const held = changed.map(({ mount, markup, reserve }) => {
     const box = reservationBox(mount, reserve);
     const token = pin(box);
+    const active = document.activeElement;
+    const hadFocus = !!(active && typeof mount.contains === 'function' && mount.contains(active));
     mount.style.visibility = 'hidden';
     mount.innerHTML = markup;
+    lastMarkup.set(mount, markup);
+    if (hadFocus) focusHolds.push({ mount, fallback: document.activeElement });
     return { mount, box, token };
   });
 
@@ -106,6 +170,7 @@ export function renderEquationGroup(entries, options = {}) {
     held.forEach(({ mount }) => {
       mount.style.visibility = '';
     });
+    if (focusHolds.length) restoreEquationFocus(focusHolds);
     /* Paint the typeset equation at the pinned height first, then hand the
        height back to CSS so the responsive rules still apply. */
     requestAnimationFrame(() => {
